@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { LayoutChangeEvent, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Board } from './src/components/Board';
 import { DragGhost } from './src/components/DragGhost';
@@ -38,9 +38,15 @@ export default function App() {
     loadInitial();
   }, [loadInitial]);
 
-  const onBoardLayout = (event: LayoutChangeEvent) => {
-    const { x, y, width } = event.nativeEvent.layout;
-    setBoardLayout({ x, y, size: width, cell: width / 8 });
+  const updatePreviewFromPoint = (x: number, y: number) => {
+    if (!drag || !boardLayout) {
+      setPreview(null);
+      return null;
+    }
+
+    const nextPreview = calculateDropPreview(x, y, drag.piece, boardLayout, board);
+    setPreview(nextPreview);
+    return nextPreview;
   };
 
   const handleDragStart = (pieceId: string, x: number, y: number) => {
@@ -49,18 +55,13 @@ export default function App() {
 
   const handleDragMove = (x: number, y: number) => {
     moveDrag(x, y);
-
-    if (!drag || !boardLayout) {
-      setPreview(null);
-      return;
-    }
-
-    const nextPreview = calculateDropPreview(x, y, drag.piece, boardLayout, board);
-    setPreview(nextPreview);
+    updatePreviewFromPoint(x, y);
   };
 
-  const handleDragEnd = async () => {
-    await tryPlacePreview();
+  const handleDragEnd = async (x: number, y: number) => {
+    moveDrag(x, y);
+    const finalPreview = updatePreviewFromPoint(x, y);
+    await tryPlacePreview(finalPreview);
   };
 
   const invalidText = useMemo(() => {
@@ -82,7 +83,7 @@ export default function App() {
             sizePx={boardSizePx}
             preview={preview}
             draggingPiece={drag?.piece ?? null}
-            onLayout={onBoardLayout}
+            onLayoutMeasured={setBoardLayout}
           />
 
           {invalidText ? <Text style={styles.invalidText}>{invalidText}</Text> : <View style={styles.invalidPlaceholder} />}
@@ -101,7 +102,7 @@ export default function App() {
           </Pressable>
         </View>
 
-        {drag ? <DragGhost piece={drag.piece} x={drag.fingerX} y={drag.fingerY} /> : null}
+        {drag ? <DragGhost piece={drag.piece} x={drag.fingerX} y={drag.fingerY} cellSize={boardLayout?.cellSize} /> : null}
 
         <GameOverModal visible={gameOver} score={score} highScore={highScore} onRestart={resetGame} />
       </SafeAreaView>
