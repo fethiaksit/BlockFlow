@@ -28,7 +28,7 @@ export default function App() {
     resetGame,
     startDrag,
     moveDrag,
-    setPreview
+    setPreview,
     tryPlacePreview
   } = useGameStore();
 
