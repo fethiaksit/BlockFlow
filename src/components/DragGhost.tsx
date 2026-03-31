@@ -6,11 +6,12 @@ type Props = {
   piece: ActivePiece;
   x: number;
   y: number;
+  cellSize?: number;
 };
 
-const CELL = 24;
+const FALLBACK_CELL_SIZE = 24;
 
-export const DragGhost = ({ piece, x, y }: Props) => {
+export const DragGhost = ({ piece, x, y, cellSize = FALLBACK_CELL_SIZE }: Props) => {
   const bounds = getPieceBounds(piece.cells);
 
   return (
@@ -19,11 +20,11 @@ export const DragGhost = ({ piece, x, y }: Props) => {
       style={[
         styles.wrapper,
         {
-          width: bounds.width * CELL,
-          height: bounds.height * CELL,
+          width: bounds.width * cellSize,
+          height: bounds.height * cellSize,
           transform: [
-            { translateX: x - (bounds.width * CELL) / 2 },
-            { translateY: y - (bounds.height * CELL) / 2 }
+            { translateX: x - (bounds.width * cellSize) / 2 },
+            { translateY: y - (bounds.height * cellSize) / 2 }
           ]
         }
       ]}
@@ -34,10 +35,10 @@ export const DragGhost = ({ piece, x, y }: Props) => {
           style={[
             styles.block,
             {
-              width: CELL - 2,
-              height: CELL - 2,
-              left: cell.col * CELL,
-              top: cell.row * CELL,
+              width: cellSize - 2,
+              height: cellSize - 2,
+              left: cell.col * cellSize,
+              top: cell.row * cellSize,
               backgroundColor: piece.color
             }
           ]}

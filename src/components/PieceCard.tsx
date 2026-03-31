@@ -1,4 +1,6 @@
-import { PanResponder, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { ActivePiece } from '../game/types';
 import { getPieceBounds } from '../game/pieces';
 
@@ -9,50 +11,52 @@ type Props = {
   hidden?: boolean;
   onDragStart: (pieceId: string, x: number, y: number) => void;
   onDragMove: (x: number, y: number) => void;
-  onDragEnd: () => void;
+  onDragEnd: (x: number, y: number) => void;
 };
 
 export const PieceCard = ({ piece, scaleCell, disabled, hidden, onDragStart, onDragMove, onDragEnd }: Props) => {
   const bounds = getPieceBounds(piece.cells);
 
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => !disabled,
-    onMoveShouldSetPanResponder: () => !disabled,
-    onPanResponderGrant: (event) => {
-      onDragStart(piece.instanceId, event.nativeEvent.pageX, event.nativeEvent.pageY);
-    },
-    onPanResponderMove: (event) => {
-      onDragMove(event.nativeEvent.pageX, event.nativeEvent.pageY);
-    },
-    onPanResponderRelease: () => onDragEnd(),
-    onPanResponderTerminate: () => onDragEnd()
-  });
+  const panGesture = Gesture.Pan()
+    .enabled(!disabled)
+    .onStart((event) => {
+      runOnJS(onDragStart)(piece.instanceId, event.absoluteX, event.absoluteY);
+      runOnJS(onDragMove)(event.absoluteX, event.absoluteY);
+    })
+    .onUpdate((event) => {
+      runOnJS(onDragMove)(event.absoluteX, event.absoluteY);
+    })
+    .onFinalize((event) => {
+      runOnJS(onDragEnd)(event.absoluteX, event.absoluteY);
+    });
 
   if (hidden) {
     return <View style={[styles.card, { opacity: 0.15 }]} />;
   }
 
   return (
-    <View style={[styles.card, disabled && styles.disabled]} {...panResponder.panHandlers}>
-      <View style={{ width: bounds.width * scaleCell, height: bounds.height * scaleCell }}>
-        {piece.cells.map((cell, index) => (
-          <View
-            key={`${piece.instanceId}-${index}`}
-            style={[
-              styles.block,
-              {
-                width: scaleCell - 2,
-                height: scaleCell - 2,
-                left: cell.col * scaleCell,
-                top: cell.row * scaleCell,
-                backgroundColor: piece.color
-              }
-            ]}
-          />
-        ))}
+    <GestureDetector gesture={panGesture}>
+      <View style={[styles.card, disabled && styles.disabled]}>
+        <View style={{ width: bounds.width * scaleCell, height: bounds.height * scaleCell }}>
+          {piece.cells.map((cell, index) => (
+            <View
+              key={`${piece.instanceId}-${index}`}
+              style={[
+                styles.block,
+                {
+                  width: scaleCell - 2,
+                  height: scaleCell - 2,
+                  left: cell.col * scaleCell,
+                  top: cell.row * scaleCell,
+                  backgroundColor: piece.color
+                }
+              ]}
+            />
+          ))}
+        </View>
+        <Text style={styles.name}>{piece.name}</Text>
       </View>
-      <Text style={styles.name}>{piece.name}</Text>
-    </View>
+    </GestureDetector>
   );
 };
 

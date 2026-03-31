@@ -1,6 +1,8 @@
+import { useCallback, useRef } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { BOARD_SIZE, COLORS } from '../constants/game';
 import { ActivePiece } from '../game/types';
+import { BoardLayout } from '../utils/drag';
 
 type Preview = {
   pieceId: string;
@@ -14,11 +16,22 @@ type Props = {
   sizePx: number;
   preview: Preview;
   draggingPiece: ActivePiece | null;
-  onLayout: (event: LayoutChangeEvent) => void;
+  onLayoutMeasured: (layout: BoardLayout) => void;
 };
 
-export const Board = ({ board, sizePx, preview, draggingPiece, onLayout }: Props) => {
+export const Board = ({ board, sizePx, preview, draggingPiece, onLayoutMeasured }: Props) => {
+  const boardRef = useRef<View>(null);
   const cellSize = sizePx / BOARD_SIZE;
+
+  const measureBoard = useCallback(() => {
+    boardRef.current?.measureInWindow((pageX, pageY, width) => {
+      onLayoutMeasured({ pageX, pageY, size: width, cellSize: width / BOARD_SIZE });
+    });
+  }, [onLayoutMeasured]);
+
+  const handleLayout = (_event: LayoutChangeEvent) => {
+    requestAnimationFrame(measureBoard);
+  };
 
   const previewLookup = new Map<string, boolean>();
   if (preview && draggingPiece) {
@@ -30,7 +43,7 @@ export const Board = ({ board, sizePx, preview, draggingPiece, onLayout }: Props
   }
 
   return (
-    <View style={[styles.board, { width: sizePx, height: sizePx }]} onLayout={onLayout}>
+    <View ref={boardRef} style={[styles.board, { width: sizePx, height: sizePx }]} onLayout={handleLayout}>
       {board.map((row, rowIndex) => (
         <View key={`r-${rowIndex}`} style={styles.row}>
           {row.map((value, colIndex) => {

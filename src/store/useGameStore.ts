@@ -5,14 +5,8 @@ import { canPlacePiece, createEmptyBoard, resolveMove } from '../game/board';
 import { isGameOver } from '../game/gameOver';
 import { drawHand } from '../game/pieces';
 import { ActivePiece, MoveScoreBreakdown } from '../game/types';
+import { PlacementPreview } from '../utils/drag';
 import { loadHighScore, saveHighScore } from '../utils/storage';
-
-type PlacementPreview = {
-  pieceId: string;
-  row: number;
-  col: number;
-  valid: boolean;
-} | null;
 
 type DragState = {
   piece: ActivePiece;
@@ -36,7 +30,7 @@ type GameState = {
   moveDrag: (fingerX: number, fingerY: number) => void;
   stopDrag: () => void;
   setPreview: (preview: PlacementPreview) => void;
-  tryPlacePreview: () => Promise<void>;
+  tryPlacePreview: (previewOverride?: PlacementPreview) => Promise<void>;
 };
 
 const initialHand = drawHand(HAND_SIZE);
@@ -90,10 +84,11 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setPreview: (preview) => set({ preview }),
 
-  tryPlacePreview: async () => {
+  tryPlacePreview: async (previewOverride) => {
     const { preview, drag, board, hand, score, highScore } = get();
+    const activePreview = previewOverride ?? preview;
 
-    if (!preview || !drag || preview.pieceId !== drag.piece.instanceId || !preview.valid) {
+    if (!activePreview || !drag || activePreview.pieceId !== drag.piece.instanceId || !activePreview.valid) {
       set((state) => ({
         drag: null,
         preview: null,
@@ -102,7 +97,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    if (!canPlacePiece(board, drag.piece, preview.row, preview.col)) {
+    if (!canPlacePiece(board, drag.piece, activePreview.row, activePreview.col)) {
       set((state) => ({
         drag: null,
         preview: null,
@@ -111,7 +106,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    const move = resolveMove(board, drag.piece, preview.row, preview.col);
+    const move = resolveMove(board, drag.piece, activePreview.row, activePreview.col);
     const nextScore = score + move.score.total;
 
     let nextHand = hand.filter((piece) => piece.instanceId !== drag.piece.instanceId);

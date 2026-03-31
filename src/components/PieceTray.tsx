@@ -8,7 +8,7 @@ type Props = {
   disabled?: boolean;
   onDragStart: (pieceId: string, x: number, y: number) => void;
   onDragMove: (x: number, y: number) => void;
-  onDragEnd: () => void;
+  onDragEnd: (x: number, y: number) => void;
 };
 
 export const PieceTray = ({ hand, draggingPieceId, disabled, onDragStart, onDragMove, onDragEnd }: Props) => {
