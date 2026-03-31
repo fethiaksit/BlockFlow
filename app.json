@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "BlockFlow",
+    "slug": "blockflow",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#121420"
+      }
+    }
+  }
+}
