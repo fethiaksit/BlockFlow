@@ -1,32 +1,39 @@
+import Animated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { StyleSheet, View } from 'react-native';
 import { ActivePiece } from '../game/types';
 import { getPieceBounds } from '../game/pieces';
 
 type Props = {
   piece: ActivePiece;
-  x: number;
-  y: number;
+  fingerX: SharedValue<number>;
+  fingerY: SharedValue<number>;
+  opacity: SharedValue<number>;
   cellSize?: number;
 };
 
 const FALLBACK_CELL_SIZE = 24;
 
-export const DragGhost = ({ piece, x, y, cellSize = FALLBACK_CELL_SIZE }: Props) => {
+export const DragGhost = ({ piece, fingerX, fingerY, opacity, cellSize = FALLBACK_CELL_SIZE }: Props) => {
   const bounds = getPieceBounds(piece.cells);
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [
+      { translateX: fingerX.value - (bounds.width * cellSize) / 2 },
+      { translateY: fingerY.value - (bounds.height * cellSize) / 2 }
+    ]
+  }));
+
   return (
-    <View
+    <Animated.View
       pointerEvents="none"
       style={[
         styles.wrapper,
         {
           width: bounds.width * cellSize,
-          height: bounds.height * cellSize,
-          transform: [
-            { translateX: x - (bounds.width * cellSize) / 2 },
-            { translateY: y - (bounds.height * cellSize) / 2 }
-          ]
-        }
+          height: bounds.height * cellSize
+        },
+        animatedStyle
       ]}
     >
       {piece.cells.map((cell, index) => (
@@ -44,15 +51,14 @@ export const DragGhost = ({ piece, x, y, cellSize = FALLBACK_CELL_SIZE }: Props)
           ]}
         />
       ))}
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    zIndex: 30,
-    opacity: 0.88
+    zIndex: 30
   },
   block: {
     position: 'absolute',
