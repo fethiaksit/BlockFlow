@@ -3,8 +3,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, SharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { DRAG_SENSITIVITY } from '../constants/game';
-import { ActivePiece } from '../game/types';
 import { getPieceBounds } from '../game/pieces';
+import { ActivePiece } from '../game/types';
+import { COLORS, SIZES, SPACING } from '../theme';
 
 type Props = {
   piece: ActivePiece;
@@ -125,15 +126,15 @@ export const PieceCard = ({
 
   const panGesture = Gesture.Pan()
     .enabled(!disabled)
-    .minDistance(2)
+    .minDistance(SIZES.boardInnerPadding)
     .onBegin((event) => {
       'worklet';
       const startX = event.absoluteX;
       const startY = event.absoluteY;
       fingerX.value = startX;
       fingerY.value = startY;
-      ghostScale.value = withTiming(1.05, { duration: 90 });
-      ghostOpacity.value = withTiming(0.95, { duration: 90 });
+      ghostScale.value = withTiming(SIZES.dragScale, { duration: 90 });
+      ghostOpacity.value = withTiming(SIZES.opacityDragGhost, { duration: 90 });
       runOnJS(handlePanBeginJS)(startX, startY);
     })
     .onUpdate((event) => {
@@ -154,7 +155,7 @@ export const PieceCard = ({
   const composedGesture = Gesture.Race(panGesture, tapGesture);
 
   const hiddenStyle = useAnimatedStyle(() => ({
-    opacity: hidden ? withTiming(0.12, { duration: 90 }) : withTiming(1, { duration: 90 })
+    opacity: hidden ? withTiming(SIZES.opacityHiddenPiece, { duration: 90 }) : withTiming(1, { duration: 90 })
   }));
 
   return (
@@ -167,8 +168,8 @@ export const PieceCard = ({
               style={[
                 styles.block,
                 {
-                  width: scaleCell - 2,
-                  height: scaleCell - 2,
+                  width: scaleCell - SIZES.boardInnerPadding,
+                  height: scaleCell - SIZES.boardInnerPadding,
                   left: (cell.col - bounds.minCol) * scaleCell,
                   top: (cell.row - bounds.minRow) * scaleCell,
                   backgroundColor: piece.color
@@ -186,29 +187,29 @@ export const PieceCard = ({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    minHeight: 96,
-    backgroundColor: '#171D31',
-    borderRadius: 12,
-    borderColor: '#303A5B',
-    borderWidth: 1,
+    minHeight: SIZES.pieceCardMinHeight,
+    backgroundColor: COLORS.panel,
+    borderRadius: SIZES.radiusXl,
+    borderColor: COLORS.cardBorder,
+    borderWidth: SIZES.boardBorderWidth,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 10
+    paddingTop: SPACING.xl
   },
   selected: {
-    borderColor: '#8BA8FF'
+    borderColor: COLORS.cardSelectedBorder
   },
   block: {
     position: 'absolute',
-    borderRadius: 4
+    borderRadius: SIZES.radiusSm
   },
   name: {
-    marginTop: 8,
-    color: '#BFC9E7',
-    fontSize: 12,
+    marginTop: SPACING.lg,
+    color: COLORS.textSecondary,
+    fontSize: SIZES.smallText,
     fontWeight: '600'
   },
   disabled: {
-    opacity: 0.6
+    opacity: SIZES.opacityDisabled
   }
 });

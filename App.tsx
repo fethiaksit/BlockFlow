@@ -7,10 +7,10 @@ import { DragGhost } from './src/components/DragGhost';
 import { GameOverModal } from './src/components/GameOverModal';
 import { PieceTray } from './src/components/PieceTray';
 import { ScoreHeader } from './src/components/ScoreHeader';
-import { COLORS } from './src/constants/game';
 import { getPieceBounds } from './src/game/pieces';
 import { useBoardSize } from './src/hooks/useBoardSize';
 import { useGameStore } from './src/store/useGameStore';
+import { COLORS, SIZES, SPACING } from './src/theme';
 import { BoardLayout, calculateDropPreview, PlacementPreview } from './src/utils/drag';
 
 export default function App() {
@@ -88,8 +88,8 @@ export default function App() {
     dragOriginRef.current = { x: originX, y: originY };
     ghostFingerX.value = x;
     ghostFingerY.value = y;
-    ghostScale.value = withTiming(1.05, { duration: 90 });
-    ghostOpacity.value = withTiming(0.95, { duration: 90 });
+    ghostScale.value = withTiming(SIZES.dragScale, { duration: 90 });
+    ghostOpacity.value = withTiming(SIZES.opacityDragGhost, { duration: 90 });
     startDrag(pieceId, x, y, anchorRatioX, anchorRatioY);
   };
 
@@ -124,7 +124,7 @@ export default function App() {
 
       ghostFingerX.value = withTiming(anchorX, { duration: 110, easing: Easing.out(Easing.quad) });
       ghostFingerY.value = withTiming(anchorY, { duration: 110, easing: Easing.out(Easing.quad) });
-      ghostScale.value = withSequence(withTiming(1.05, { duration: 60 }), withTiming(1, { duration: 80 }));
+      ghostScale.value = withSequence(withTiming(SIZES.dragScale, { duration: 60 }), withTiming(1, { duration: 80 }));
 
       ghostOpacity.value = withTiming(0, { duration: 130 }, (finished) => {
         if (finished) {
@@ -141,8 +141,8 @@ export default function App() {
     }
 
     ghostFingerX.value = withSequence(
-      withTiming(origin.x + 8, { duration: 45 }),
-      withTiming(origin.x - 8, { duration: 45 }),
+      withTiming(origin.x + SPACING.lg, { duration: 45 }),
+      withTiming(origin.x - SPACING.lg, { duration: 45 }),
       withTiming(origin.x, { duration: 80 })
     );
     ghostFingerY.value = withTiming(origin.y, { duration: 160 }, (finished) => {
@@ -233,37 +233,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 14,
-    paddingBottom: 20
+    paddingHorizontal: SPACING.xxl,
+    paddingTop: SPACING.xxxl,
+    paddingBottom: SPACING.giant
   },
   title: {
     color: COLORS.textPrimary,
-    fontSize: 32,
+    fontSize: SIZES.title,
     fontWeight: '800',
-    marginBottom: 8
+    marginBottom: SPACING.lg
   },
   invalidText: {
-    color: '#FF8080',
-    marginTop: 8,
+    color: COLORS.invalidText,
+    marginTop: SPACING.lg,
     fontWeight: '600',
-    fontSize: 13,
-    minHeight: 18
+    fontSize: SIZES.caption,
+    minHeight: SIZES.invalidTextHeight
   },
   invalidPlaceholder: {
-    minHeight: 18,
-    marginTop: 8
+    minHeight: SIZES.invalidTextHeight,
+    marginTop: SPACING.lg
   },
   restartButton: {
-    marginTop: 14,
-    backgroundColor: '#2D3A63',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10
+    marginTop: SPACING.xxxl,
+    backgroundColor: COLORS.restartButton,
+    paddingHorizontal: SPACING.giant,
+    paddingVertical: SPACING.xl,
+    borderRadius: SIZES.radiusLg
   },
   restartText: {
     color: COLORS.textPrimary,
     fontWeight: '700',
-    fontSize: 14
+    fontSize: SIZES.bodyText
   }
 });

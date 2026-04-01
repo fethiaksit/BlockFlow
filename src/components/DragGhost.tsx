@@ -1,7 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 import Animated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
-import { ActivePiece } from '../game/types';
 import { getPieceBounds } from '../game/pieces';
+import { ActivePiece } from '../game/types';
+import { SIZES } from '../theme';
 
 type Props = {
   piece: ActivePiece;
@@ -57,8 +58,8 @@ export const DragGhost = ({
           style={[
             styles.block,
             {
-              width: cellSize - 2,
-              height: cellSize - 2,
+              width: cellSize - SIZES.boardInnerPadding,
+              height: cellSize - SIZES.boardInnerPadding,
               left: (cell.col - bounds.minCol) * cellSize,
               top: (cell.row - bounds.minRow) * cellSize,
               backgroundColor: piece.color
@@ -73,10 +74,10 @@ export const DragGhost = ({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    zIndex: 30
+    zIndex: SIZES.zIndexGhost
   },
   block: {
     position: 'absolute',
-    borderRadius: 5
+    borderRadius: SIZES.radiusMd
   }
 });

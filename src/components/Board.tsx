@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { BOARD_SIZE, COLORS } from '../constants/game';
+import { BOARD_SIZE } from '../constants/game';
 import { ActivePiece } from '../game/types';
+import { COLORS, SIZES } from '../theme';
 import { BoardLayout } from '../utils/drag';
 
 type Preview = {
@@ -35,8 +36,8 @@ const PreviewLayerCell = ({ visible, valid, cellSize }: { visible: boolean; vali
   }, [visible, progress]);
 
   const style = useAnimatedStyle(() => ({
-    opacity: progress.value * 0.9,
-    transform: [{ scale: 0.94 + progress.value * 0.06 }]
+    opacity: progress.value * SIZES.previewOpacityMultiplier,
+    transform: [{ scale: SIZES.previewBaseScale + progress.value * SIZES.previewScaleDelta }]
   }));
 
   return (
@@ -71,12 +72,12 @@ const ClearPulseCell = ({
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withTiming(1, { duration: 180 });
+    progress.value = withTiming(1, { duration: SIZES.clearPulseDuration });
   }, [progress]);
 
   const style = useAnimatedStyle(() => ({
     opacity: 1 - progress.value,
-    transform: [{ scale: 1 - progress.value * 0.25 }]
+    transform: [{ scale: 1 - progress.value * SIZES.clearPulseScaleDelta }]
   }));
 
   return (
@@ -101,8 +102,8 @@ export const Board = ({ board, sizePx, preview, draggingPiece, gameOver = false,
   const previousBoardRef = useRef(board);
   const clearPulseIdRef = useRef(0);
   const [clearingCells, setClearingCells] = useState<ClearingCell[]>([]);
-  const boardInnerPadding = 2;
-  const cellMargin = 1;
+  const boardInnerPadding = SIZES.boardInnerPadding;
+  const cellMargin = SIZES.cellMargin;
   const gridSize = sizePx - boardInnerPadding * 2;
   const cellStep = gridSize / BOARD_SIZE;
   const cellSize = cellStep - cellMargin * 2;
@@ -111,8 +112,8 @@ export const Board = ({ board, sizePx, preview, draggingPiece, gameOver = false,
   const boardOpacity = useSharedValue(1);
 
   useEffect(() => {
-    boardScale.value = withTiming(gameOver ? 0.98 : 1, { duration: 220 });
-    boardOpacity.value = withTiming(gameOver ? 0.92 : 1, { duration: 220 });
+    boardScale.value = withTiming(gameOver ? SIZES.boardGameOverScale : 1, { duration: 220 });
+    boardOpacity.value = withTiming(gameOver ? SIZES.opacityGameOverBoard : 1, { duration: 220 });
   }, [gameOver, boardOpacity, boardScale]);
 
   const boardAnimatedStyle = useAnimatedStyle(() => ({
@@ -138,7 +139,7 @@ export const Board = ({ board, sizePx, preview, draggingPiece, gameOver = false,
 
     if (pulses.length > 0) {
       setClearingCells(pulses);
-      const timeout = setTimeout(() => setClearingCells([]), 220);
+      const timeout = setTimeout(() => setClearingCells([]), SIZES.clearPulseCleanupDelay);
       return () => clearTimeout(timeout);
     }
 
@@ -147,15 +148,15 @@ export const Board = ({ board, sizePx, preview, draggingPiece, gameOver = false,
 
   const measureBoard = useCallback(() => {
     boardRef.current?.measureInWindow((pageX, pageY, width) => {
-      const gridSize = width - boardInnerPadding * 2;
+      const measuredGridSize = width - boardInnerPadding * 2;
       onLayoutMeasured({
         pageX,
         pageY,
         size: width,
-        gridSize,
+        gridSize: measuredGridSize,
         gridX: pageX + boardInnerPadding,
         gridY: pageY + boardInnerPadding,
-        cellSize: gridSize / BOARD_SIZE
+        cellSize: measuredGridSize / BOARD_SIZE
       });
     });
   }, [boardInnerPadding, onLayoutMeasured]);
@@ -223,10 +224,10 @@ const styles = StyleSheet.create({
   board: {
     alignSelf: 'center',
     backgroundColor: COLORS.boardBackground,
-    borderRadius: 12,
-    padding: 2,
-    borderWidth: 1,
-    borderColor: '#2B3558',
+    borderRadius: SIZES.radiusXl,
+    padding: SIZES.boardInnerPadding,
+    borderWidth: SIZES.boardBorderWidth,
+    borderColor: COLORS.boardBorder,
     overflow: 'hidden'
   },
   row: {
@@ -234,18 +235,18 @@ const styles = StyleSheet.create({
     flex: 1
   },
   cell: {
-    margin: 1,
-    borderRadius: 4,
+    margin: SIZES.cellMargin,
+    borderRadius: SIZES.radiusSm,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden'
   },
   previewCell: {
-    borderRadius: 4
+    borderRadius: SIZES.radiusSm
   },
   clearPulse: {
     position: 'absolute',
-    borderRadius: 4,
-    backgroundColor: '#FFF7B0'
+    borderRadius: SIZES.radiusSm,
+    backgroundColor: COLORS.clearPulse
   }
 });
