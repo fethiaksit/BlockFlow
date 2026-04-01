@@ -29,8 +29,8 @@ export const getPieceAnchorFromFinger = (
   const localY = fingerY - boardLayout.pageY - (bounds.height * boardLayout.cellSize) / 2;
 
   return {
-    row: toCellIndex(localY, boardLayout.cellSize),
-    col: toCellIndex(localX, boardLayout.cellSize)
+    row: toCellIndex(localY, boardLayout.cellSize) - bounds.minRow,
+    col: toCellIndex(localX, boardLayout.cellSize) - bounds.minCol
   };
 };
 

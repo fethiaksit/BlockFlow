@@ -37,8 +37,8 @@ export const DragGhost = ({ piece, x, y, cellSize = FALLBACK_CELL_SIZE }: Props)
             {
               width: cellSize - 2,
               height: cellSize - 2,
-              left: cell.col * cellSize,
-              top: cell.row * cellSize,
+              left: (cell.col - bounds.minCol) * cellSize,
+              top: (cell.row - bounds.minRow) * cellSize,
               backgroundColor: piece.color
             }
           ]}

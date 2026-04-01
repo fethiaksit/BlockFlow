@@ -46,8 +46,8 @@ export const PieceCard = ({ piece, scaleCell, disabled, hidden, onDragStart, onD
                 {
                   width: scaleCell - 2,
                   height: scaleCell - 2,
-                  left: cell.col * scaleCell,
-                  top: cell.row * scaleCell,
+                  left: (cell.col - bounds.minCol) * scaleCell,
+                  top: (cell.row - bounds.minRow) * scaleCell,
                   backgroundColor: piece.color
                 }
               ]}
