@@ -17,6 +17,16 @@ export type BoardAnchor = {
   col: number;
 };
 
+export type FingerToBoardOptions = {
+  anchorRatioX?: number;
+  anchorRatioY?: number;
+  /**
+   * Additional interactive padding (in cell units) around the board.
+   * Helps edge rows/cols (especially the last row) feel as targetable as inner cells.
+   */
+  hitSlopCells?: number;
+};
+
 const EDGE_EPSILON = 0.0001;
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
@@ -30,6 +40,21 @@ export const getBoardLocalPoint = (absoluteX: number, absoluteY: number, boardLa
   localX: absoluteX - boardLayout.gridX,
   localY: absoluteY - boardLayout.gridY
 });
+
+const isInsideInteractiveBoardArea = (
+  localX: number,
+  localY: number,
+  boardLayout: BoardLayout,
+  hitSlopCells = 0
+): boolean => {
+  const hitSlopPx = Math.max(0, hitSlopCells) * boardLayout.cellSize;
+  return (
+    localX >= -hitSlopPx &&
+    localX <= boardLayout.gridSize + hitSlopPx &&
+    localY >= -hitSlopPx &&
+    localY <= boardLayout.gridSize + hitSlopPx
+  );
+};
 
 export const getBoardAnchorFromAbsolute = (absoluteX: number, absoluteY: number, boardLayout: BoardLayout): BoardAnchor => {
   const { localX, localY } = getBoardLocalPoint(absoluteX, absoluteY, boardLayout);
@@ -61,6 +86,27 @@ export const getPieceAnchorFromFinger = (
     row: clamp(pieceTopLeftAnchor.row - bounds.minRow, 0, BOARD_SIZE - 1),
     col: clamp(pieceTopLeftAnchor.col - bounds.minCol, 0, BOARD_SIZE - 1)
   };
+};
+
+export const resolvePlacementAnchorFromFinger = (
+  fingerX: number,
+  fingerY: number,
+  piece: ActivePiece,
+  boardLayout: BoardLayout,
+  options: FingerToBoardOptions = {}
+): BoardAnchor | null => {
+  const {
+    anchorRatioX = 0.5,
+    anchorRatioY = 0.5,
+    hitSlopCells = 0.45
+  } = options;
+
+  const { localX, localY } = getBoardLocalPoint(fingerX, fingerY, boardLayout);
+  if (!isInsideInteractiveBoardArea(localX, localY, boardLayout, hitSlopCells)) {
+    return null;
+  }
+
+  return getPieceAnchorFromFinger(fingerX, fingerY, piece, boardLayout, anchorRatioX, anchorRatioY);
 };
 
 export const getPieceTopLeftFromFinger = (
