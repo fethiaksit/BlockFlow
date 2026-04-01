@@ -13,6 +13,14 @@ import { useBoardSize } from './src/hooks/useBoardSize';
 import { useGameStore } from './src/store/useGameStore';
 import { COLORS, SIZES, SPACING } from './src/theme';
 import { BoardLayout, calculateDropPreview, PlacementPreview } from './src/utils/drag';
+import {
+  playClickSound,
+  playGameOverSound,
+  playPlacementSound,
+  playWinSound,
+  preloadSounds,
+  unloadSounds
+} from './src/utils/sound';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -56,7 +64,16 @@ export default function App() {
     loadInitial();
   }, [loadInitial]);
 
+  useEffect(() => {
+    void preloadSounds();
+
+    return () => {
+      void unloadSounds();
+    };
+  }, []);
+
   const handleStart = () => {
+    void playClickSound();
     resetGame();
     setScreen('game');
   };
@@ -127,6 +144,8 @@ function GameScreen() {
 
   const boardLayoutRef = useRef<BoardLayout | null>(null);
   const dragOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const previousMoveRef = useRef(lastMove);
+  const previousGameOverRef = useRef(gameOver);
 
   const ghostFingerX = useSharedValue(0);
   const ghostFingerY = useSharedValue(0);
@@ -169,6 +188,7 @@ function GameScreen() {
     anchorRatioX: number,
     anchorRatioY: number
   ) => {
+    void playClickSound();
     dragOriginRef.current = { x: originX, y: originY };
     ghostFingerX.value = x;
     ghostFingerY.value = y;
@@ -176,6 +196,26 @@ function GameScreen() {
     ghostOpacity.value = withTiming(SIZES.opacityDragGhost, { duration: 90 });
     startDrag(pieceId, x, y, anchorRatioX, anchorRatioY);
   };
+
+  useEffect(() => {
+    if (lastMove && lastMove !== previousMoveRef.current) {
+      void playPlacementSound();
+
+      if (lastMove.clearedLines > 0) {
+        void playWinSound();
+      }
+    }
+
+    previousMoveRef.current = lastMove;
+  }, [lastMove]);
+
+  useEffect(() => {
+    if (gameOver && !previousGameOverRef.current) {
+      void playGameOverSound();
+    }
+
+    previousGameOverRef.current = gameOver;
+  }, [gameOver]);
 
   const handleDragMove = (x: number, y: number) => {
     moveDrag(x, y);
@@ -276,7 +316,10 @@ function GameScreen() {
           fingerY={ghostFingerY}
           ghostScale={ghostScale}
           ghostOpacity={ghostOpacity}
-          onSelectPiece={selectPiece}
+          onSelectPiece={(pieceId) => {
+            void playClickSound();
+            selectPiece(pieceId);
+          }}
           onDragStart={handleDragStart}
           onDragMove={handleDragMove}
           onDragEnd={handleDragEnd}
@@ -284,7 +327,10 @@ function GameScreen() {
 
         <Pressable
           style={({ pressed }) => [styles.restartButton, pressed && { opacity: 0.8 }]}
-          onPress={resetGame}
+          onPress={() => {
+            void playClickSound();
+            resetGame();
+          }}
         >
           <Text style={styles.restartText}>Yeniden Başlat</Text>
         </Pressable>
