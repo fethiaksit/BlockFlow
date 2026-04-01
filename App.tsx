@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Board } from './src/components/Board';
@@ -33,24 +33,37 @@ export default function App() {
   } = useGameStore();
 
   const [boardLayout, setBoardLayout] = useState<BoardLayout | null>(null);
+  const boardLayoutRef = useRef<BoardLayout | null>(null);
 
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
 
+  const handleBoardLayoutMeasured = (layout: BoardLayout) => {
+    boardLayoutRef.current = layout;
+    setBoardLayout(layout);
+  };
+
   const updatePreviewFromPoint = (x: number, y: number) => {
-    if (!drag || !boardLayout) {
-      setPreview(null);
+    const state = useGameStore.getState();
+    const activeDrag = state.drag;
+    const activeBoardLayout = boardLayoutRef.current;
+
+    if (!activeDrag || !activeBoardLayout) {
+      state.setPreview(null);
       return null;
     }
 
-    const nextPreview = calculateDropPreview(x, y, drag.piece, boardLayout, board);
-    setPreview(nextPreview);
+    const nextPreview = calculateDropPreview(x, y, activeDrag.piece, activeBoardLayout, state.board);
+    state.setPreview(nextPreview);
     return nextPreview;
   };
 
   const handleDragStart = (pieceId: string, x: number, y: number) => {
     startDrag(pieceId, x, y);
+    requestAnimationFrame(() => {
+      updatePreviewFromPoint(x, y);
+    });
   };
 
   const handleDragMove = (x: number, y: number) => {
@@ -83,7 +96,7 @@ export default function App() {
             sizePx={boardSizePx}
             preview={preview}
             draggingPiece={drag?.piece ?? null}
-            onLayoutMeasured={setBoardLayout}
+            onLayoutMeasured={handleBoardLayoutMeasured}
           />
 
           {invalidText ? <Text style={styles.invalidText}>{invalidText}</Text> : <View style={styles.invalidPlaceholder} />}
