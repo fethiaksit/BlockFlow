@@ -8,7 +8,7 @@ type Props = {
   selectedPieceId?: string | null;
   disabled?: boolean;
   onSelectPiece: (pieceId: string) => void;
-  onDragStart: (pieceId: string, x: number, y: number) => void;
+  onDragStart: (pieceId: string, x: number, y: number, originX: number, originY: number) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: (x: number, y: number) => void;
 };

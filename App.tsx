@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { runOnJS, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Board } from './src/components/Board';
 import { DragGhost } from './src/components/DragGhost';
 import { GameOverModal } from './src/components/GameOverModal';
@@ -9,7 +10,7 @@ import { ScoreHeader } from './src/components/ScoreHeader';
 import { COLORS } from './src/constants/game';
 import { useBoardSize } from './src/hooks/useBoardSize';
 import { useGameStore } from './src/store/useGameStore';
-import { BoardLayout, calculateDropPreview } from './src/utils/drag';
+import { BoardLayout, calculateDropPreview, PlacementPreview } from './src/utils/drag';
 
 export default function App() {
   const { boardSizePx } = useBoardSize();
@@ -34,8 +35,12 @@ export default function App() {
     tryPlacePreview
   } = useGameStore();
 
-  const [boardLayout, setBoardLayout] = useState<BoardLayout | null>(null);
   const boardLayoutRef = useRef<BoardLayout | null>(null);
+  const dragOriginRef = useRef<{ x: number; y: number } | null>(null);
+
+  const ghostFingerX = useSharedValue(0);
+  const ghostFingerY = useSharedValue(0);
+  const ghostOpacity = useSharedValue(0);
 
   useEffect(() => {
     loadInitial();
@@ -43,7 +48,6 @@ export default function App() {
 
   const handleBoardLayoutMeasured = (layout: BoardLayout) => {
     boardLayoutRef.current = layout;
-    setBoardLayout(layout);
   };
 
   const updatePreviewFromPoint = (x: number, y: number) => {
@@ -61,19 +65,58 @@ export default function App() {
     return nextPreview;
   };
 
-  const handleDragStart = (pieceId: string, x: number, y: number) => {
+  const handleDragStart = (pieceId: string, x: number, y: number, originX: number, originY: number) => {
+    dragOriginRef.current = { x: originX, y: originY };
+    ghostFingerX.value = x;
+    ghostFingerY.value = y;
+    ghostOpacity.value = 1;
     startDrag(pieceId, x, y);
   };
 
   const handleDragMove = (x: number, y: number) => {
+    ghostFingerX.value = x;
+    ghostFingerY.value = y;
     moveDrag(x, y);
     updatePreviewFromPoint(x, y);
   };
 
+  const handleInvalidDropAfterAnimation = async (finalPreview: PlacementPreview) => {
+    await tryPlacePreview(finalPreview, true);
+    ghostOpacity.value = 0;
+  };
+
   const handleDragEnd = async (x: number, y: number) => {
+    ghostFingerX.value = x;
+    ghostFingerY.value = y;
+
     moveDrag(x, y);
     const finalPreview = updatePreviewFromPoint(x, y);
-    await tryPlacePreview(finalPreview, finalPreview !== null);
+
+    if (!finalPreview) {
+      ghostOpacity.value = 0;
+      await tryPlacePreview(null, false);
+      return;
+    }
+
+    if (finalPreview.valid) {
+      ghostOpacity.value = 0;
+      await tryPlacePreview(finalPreview, true);
+      return;
+    }
+
+    const origin = dragOriginRef.current;
+    if (!origin) {
+      ghostOpacity.value = 0;
+      await tryPlacePreview(finalPreview, true);
+      return;
+    }
+
+    ghostFingerX.value = withTiming(origin.x, { duration: 180 });
+    ghostFingerY.value = withTiming(origin.y, { duration: 180 }, (finished) => {
+      if (finished) {
+        runOnJS(handleInvalidDropAfterAnimation)(finalPreview);
+      }
+    });
   };
 
   const invalidText = useMemo(() => {
@@ -116,7 +159,9 @@ export default function App() {
           </Pressable>
         </View>
 
-        {drag ? <DragGhost piece={drag.piece} x={drag.fingerX} y={drag.fingerY} cellSize={boardLayout?.cellSize} /> : null}
+        {drag ? (
+          <DragGhost piece={drag.piece} fingerX={ghostFingerX} fingerY={ghostFingerY} opacity={ghostOpacity} cellSize={boardLayoutRef.current?.cellSize} />
+        ) : null}
 
         <GameOverModal visible={gameOver} score={score} highScore={highScore} onRestart={resetGame} />
       </SafeAreaView>

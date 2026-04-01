@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { ActivePiece } from '../game/types';
@@ -10,13 +11,20 @@ type Props = {
   hidden?: boolean;
   selected?: boolean;
   onSelect: (pieceId: string) => void;
-  onDragStart: (pieceId: string, x: number, y: number) => void;
+  onDragStart: (pieceId: string, x: number, y: number, originX: number, originY: number) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: (x: number, y: number) => void;
 };
 
 export const PieceCard = ({ piece, scaleCell, disabled, hidden, selected, onSelect, onDragStart, onDragMove, onDragEnd }: Props) => {
   const bounds = getPieceBounds(piece.cells);
+  const cardRef = useRef<View>(null);
+
+  const startDragFromEvent = (x: number, y: number) => {
+    cardRef.current?.measureInWindow((pageX, pageY, width, height) => {
+      onDragStart(piece.instanceId, x, y, pageX + width / 2, pageY + height / 2);
+    });
+  };
 
   const tapGesture = Gesture.Tap()
     .enabled(!disabled)
@@ -29,27 +37,23 @@ export const PieceCard = ({ piece, scaleCell, disabled, hidden, selected, onSele
 
   const panGesture = Gesture.Pan()
     .enabled(!disabled)
-    .minDistance(4)
+    .minDistance(2)
     .runOnJS(true)
-    .onStart((event) => {
-      onDragStart(piece.instanceId, event.absoluteX, event.absoluteY);
+    .onBegin((event) => {
+      startDragFromEvent(event.absoluteX, event.absoluteY);
     })
     .onUpdate((event) => {
       onDragMove(event.absoluteX, event.absoluteY);
     })
-    .onFinalize((event) => {
+    .onEnd((event) => {
       onDragEnd(event.absoluteX, event.absoluteY);
     });
 
-  const composedGesture = Gesture.Simultaneous(tapGesture, panGesture);
-
-  if (hidden) {
-    return <View style={[styles.card, { opacity: 0.15 }]} />;
-  }
+  const composedGesture = Gesture.Race(panGesture, tapGesture);
 
   return (
     <GestureDetector gesture={composedGesture}>
-      <View style={[styles.card, disabled && styles.disabled, selected && styles.selected]}>
+      <View ref={cardRef} style={[styles.card, disabled && styles.disabled, selected && styles.selected, hidden && styles.hidden]}>
         <View style={{ width: bounds.width * scaleCell, height: bounds.height * scaleCell }}>
           {piece.cells.map((cell, index) => (
             <View
@@ -87,6 +91,9 @@ const styles = StyleSheet.create({
   },
   selected: {
     borderColor: '#8BA8FF'
+  },
+  hidden: {
+    opacity: 0.15
   },
   block: {
     position: 'absolute',
