@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { create } from 'zustand';
-import { BOARD_SIZE, HAND_SIZE } from '../constants/game';
+import { HAND_SIZE } from '../constants/game';
 import { canPlacePiece, createEmptyBoard, resolveMove } from '../game/board';
 import { isGameOver } from '../game/gameOver';
 import { drawHand } from '../game/pieces';
@@ -20,17 +20,19 @@ type GameState = {
   score: number;
   highScore: number;
   gameOver: boolean;
+  selectedPieceId: string | null;
   drag: DragState;
   preview: PlacementPreview;
   invalidDropPulse: number;
   lastMove: MoveScoreBreakdown | null;
   loadInitial: () => Promise<void>;
   resetGame: () => void;
+  selectPiece: (pieceId: string | null) => void;
   startDrag: (pieceId: string, fingerX: number, fingerY: number) => void;
   moveDrag: (fingerX: number, fingerY: number) => void;
   stopDrag: () => void;
   setPreview: (preview: PlacementPreview) => void;
-  tryPlacePreview: (previewOverride?: PlacementPreview) => Promise<void>;
+  tryPlacePreview: (previewOverride: PlacementPreview, droppedOnBoard: boolean) => Promise<void>;
 };
 
 const initialHand = drawHand(HAND_SIZE);
@@ -41,6 +43,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   score: 0,
   highScore: 0,
   gameOver: false,
+  selectedPieceId: null,
   drag: null,
   preview: null,
   invalidDropPulse: 0,
@@ -57,6 +60,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       hand: drawHand(HAND_SIZE),
       score: 0,
       gameOver: false,
+      selectedPieceId: null,
       drag: null,
       preview: null,
       invalidDropPulse: 0,
@@ -64,11 +68,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
+  selectPiece: (pieceId) => {
+    if (get().gameOver) return;
+    set({ selectedPieceId: pieceId });
+  },
+
   startDrag: (pieceId, fingerX, fingerY) => {
     const piece = get().hand.find((item) => item.instanceId === pieceId);
     if (!piece || get().gameOver) return;
 
-    set({ drag: { piece, fingerX, fingerY }, preview: null });
+    set({ selectedPieceId: pieceId, drag: { piece, fingerX, fingerY }, preview: null });
   },
 
   moveDrag: (fingerX, fingerY) => {
@@ -84,11 +93,20 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setPreview: (preview) => set({ preview }),
 
-  tryPlacePreview: async (previewOverride) => {
-    const { preview, drag, board, hand, score, highScore } = get();
-    const activePreview = previewOverride ?? preview;
+  tryPlacePreview: async (previewOverride, droppedOnBoard) => {
+    const { drag, board, hand, score, highScore } = get();
 
-    if (!activePreview || !drag || activePreview.pieceId !== drag.piece.instanceId || !activePreview.valid) {
+    if (!drag) {
+      set({ preview: null });
+      return;
+    }
+
+    if (!droppedOnBoard || !previewOverride || previewOverride.pieceId !== drag.piece.instanceId) {
+      set({ drag: null, preview: null });
+      return;
+    }
+
+    if (!previewOverride.valid || !canPlacePiece(board, drag.piece, previewOverride.row, previewOverride.col)) {
       set((state) => ({
         drag: null,
         preview: null,
@@ -97,16 +115,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    if (!canPlacePiece(board, drag.piece, activePreview.row, activePreview.col)) {
-      set((state) => ({
-        drag: null,
-        preview: null,
-        invalidDropPulse: state.invalidDropPulse + 1
-      }));
-      return;
-    }
-
-    const move = resolveMove(board, drag.piece, activePreview.row, activePreview.col);
+    const move = resolveMove(board, drag.piece, previewOverride.row, previewOverride.col);
     const nextScore = score + move.score.total;
 
     let nextHand = hand.filter((piece) => piece.instanceId !== drag.piece.instanceId);
@@ -144,9 +153,3 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   }
 }));
-
-export const clampToBoard = (value: number): number => {
-  if (value < 0) return 0;
-  if (value >= BOARD_SIZE) return BOARD_SIZE - 1;
-  return value;
-};

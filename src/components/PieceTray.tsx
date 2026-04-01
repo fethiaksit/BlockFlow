@@ -5,13 +5,24 @@ import { PieceCard } from './PieceCard';
 type Props = {
   hand: ActivePiece[];
   draggingPieceId?: string;
+  selectedPieceId?: string | null;
   disabled?: boolean;
+  onSelectPiece: (pieceId: string) => void;
   onDragStart: (pieceId: string, x: number, y: number) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: (x: number, y: number) => void;
 };
 
-export const PieceTray = ({ hand, draggingPieceId, disabled, onDragStart, onDragMove, onDragEnd }: Props) => {
+export const PieceTray = ({
+  hand,
+  draggingPieceId,
+  selectedPieceId,
+  disabled,
+  onSelectPiece,
+  onDragStart,
+  onDragMove,
+  onDragEnd
+}: Props) => {
   return (
     <View style={styles.row}>
       {hand.map((piece) => (
@@ -21,6 +32,8 @@ export const PieceTray = ({ hand, draggingPieceId, disabled, onDragStart, onDrag
           scaleCell={20}
           disabled={disabled}
           hidden={draggingPieceId === piece.instanceId}
+          selected={selectedPieceId === piece.instanceId}
+          onSelect={onSelectPiece}
           onDragStart={onDragStart}
           onDragMove={onDragMove}
           onDragEnd={onDragEnd}
