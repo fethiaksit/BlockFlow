@@ -13,10 +13,10 @@ export type PlacementPreview = {
 
 const isPointInsideBoard = (x: number, y: number, boardLayout: BoardLayout): boolean => {
   return (
-    x >= boardLayout.pageX &&
-    x <= boardLayout.pageX + boardLayout.size &&
-    y >= boardLayout.pageY &&
-    y <= boardLayout.pageY + boardLayout.size
+    x >= boardLayout.gridX &&
+    x <= boardLayout.gridX + boardLayout.gridSize &&
+    y >= boardLayout.gridY &&
+    y <= boardLayout.gridY + boardLayout.gridSize
   );
 };
 

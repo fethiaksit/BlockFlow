@@ -89,7 +89,8 @@ export const Board = ({ board, sizePx, preview, draggingPiece, gameOver = false,
   const previousBoardRef = useRef(board);
   const clearPulseIdRef = useRef(0);
   const [clearingCells, setClearingCells] = useState<ClearingCell[]>([]);
-  const cellSize = sizePx / BOARD_SIZE;
+  const boardInnerPadding = 2;
+  const cellSize = (sizePx - boardInnerPadding * 2) / BOARD_SIZE;
 
   const boardScale = useSharedValue(1);
   const boardOpacity = useSharedValue(1);
@@ -131,9 +132,18 @@ export const Board = ({ board, sizePx, preview, draggingPiece, gameOver = false,
 
   const measureBoard = useCallback(() => {
     boardRef.current?.measureInWindow((pageX, pageY, width) => {
-      onLayoutMeasured({ pageX, pageY, size: width, cellSize: width / BOARD_SIZE });
+      const gridSize = width - boardInnerPadding * 2;
+      onLayoutMeasured({
+        pageX,
+        pageY,
+        size: width,
+        gridSize,
+        gridX: pageX + boardInnerPadding,
+        gridY: pageY + boardInnerPadding,
+        cellSize: gridSize / BOARD_SIZE
+      });
     });
-  }, [onLayoutMeasured]);
+  }, [boardInnerPadding, onLayoutMeasured]);
 
   const handleLayout = (_event: LayoutChangeEvent) => {
     requestAnimationFrame(measureBoard);
