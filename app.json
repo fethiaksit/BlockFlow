@@ -8,12 +8,14 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fethiaksit.blockflow"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#121420"
-      }
+      },
+      "package": "com.fethiaksit.blockflow"
     }
   }
 }
