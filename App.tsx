@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, Pressable, SafeAreaView, StyleSheet, Text, View, Dimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Easing, runOnJS, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import { Easing, runOnJS, useSharedValue, withSequence, withTiming, withRepeat } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { Board } from './src/components/Board';
 import { DragGhost } from './src/components/DragGhost';
 import { GameOverModal } from './src/components/GameOverModal';
@@ -13,7 +14,39 @@ import { useGameStore } from './src/store/useGameStore';
 import { COLORS, SIZES, SPACING } from './src/theme';
 import { BoardLayout, calculateDropPreview, PlacementPreview } from './src/utils/drag';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 type Screen = 'home' | 'game';
+
+/**
+ * Giriş ekranındaki yüzen balon efekti için küçük bir yardımcı bileşen
+ */
+function FloatingBubble({ size, color, top, left, duration }: { size: number, color: string, top: number, left: number, duration: number }) {
+  const translateY = useSharedValue(0);
+
+  useEffect(() => {
+    translateY.value = withRepeat(
+      withTiming(-20, { duration, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true
+    );
+  }, []);
+
+  return (
+    <Animated.View
+      style={[{
+        position: 'absolute',
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        top,
+        left,
+        opacity: 0.15,
+      }, { transform: [{ translateY }] }]}
+    />
+  );
+}
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
@@ -33,18 +66,33 @@ export default function App() {
       <SafeAreaView style={styles.safeArea}>
         {screen === 'home' ? (
           <View style={styles.homeContainer}>
-            <Text style={styles.title}>BlockFlow</Text>
-            <Text style={styles.subtitle}>Place blocks, clear lines, chase your best score.</Text>
+            {/* Arka Plan Balonları */}
+            <FloatingBubble size={120} color="#FF6B6B" top={100} left={-30} duration={3000} />
+            <FloatingBubble size={80} color="#4ECDC4" top={250} left={SCREEN_WIDTH - 50} duration={2500} />
+            <FloatingBubble size={150} color="#FFD93D" top={500} left={20} duration={3500} />
+            <FloatingBubble size={60} color="#6C5CE7" top={650} left={SCREEN_WIDTH - 100} duration={2000} />
+
+            <View style={styles.logoBadge}>
+              <Text style={styles.title}>BlockFlow</Text>
+            </View>
+
+            <Text style={styles.subtitle}>Renkli blokları eşleştir, patlat ve rekorunu kır!</Text>
 
             {highScore > 0 ? (
               <View style={styles.highScoreCard}>
-                <Text style={styles.highScoreLabel}>High Score</Text>
+                <Text style={styles.highScoreLabel}>EN YÜKSEK SKOR</Text>
                 <Text style={styles.highScoreValue}>{highScore}</Text>
               </View>
             ) : null}
 
-            <Pressable style={styles.startButton} onPress={handleStart}>
-              <Text style={styles.startButtonText}>Start</Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.startButton,
+                pressed && { transform: [{ scale: 0.95 }], opacity: 0.9 }
+              ]}
+              onPress={handleStart}
+            >
+              <Text style={styles.startButtonText}>OYUNA BAŞLA</Text>
             </Pressable>
           </View>
         ) : (
@@ -202,7 +250,9 @@ function GameScreen() {
   return (
     <>
       <View style={styles.container} onLayout={handleContainerLayout}>
-        <Text style={styles.title}>BlockFlow</Text>
+        <View style={styles.gameTitleContainer}>
+          <Text style={styles.gameTitle}>BlockFlow</Text>
+        </View>
 
         <ScoreHeader score={score} highScore={highScore} lastMove={lastMove} />
 
@@ -232,7 +282,10 @@ function GameScreen() {
           onDragEnd={handleDragEnd}
         />
 
-        <Pressable style={styles.restartButton} onPress={resetGame}>
+        <Pressable
+          style={({ pressed }) => [styles.restartButton, pressed && { opacity: 0.8 }]}
+          onPress={resetGame}
+        >
           <Text style={styles.restartText}>Yeniden Başlat</Text>
         </Pressable>
       </View>
@@ -268,7 +321,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.giant,
-    gap: SPACING.huge
+    backgroundColor: '#F0F4FF' // Daha yumuşak bir arka plan
+  },
+  logoBadge: {
+    backgroundColor: COLORS.white,
+    paddingHorizontal: SPACING.giant,
+    paddingVertical: SPACING.lg,
+    borderRadius: 50, // Tam yuvarlak "balon" görünümü
+    marginBottom: SPACING.xl,
+    elevation: 10,
+    shadowColor: COLORS.boardFilled,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
   },
   container: {
     flex: 1,
@@ -277,54 +342,68 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   title: {
-    marginTop: SPACING.huge,
+    fontSize: 48,
+    fontWeight: '900',
+    color: COLORS.boardFilled,
+    letterSpacing: -1
+  },
+  gameTitleContainer: {
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.md,
+  },
+  gameTitle: {
     fontSize: SIZES.title,
     fontWeight: '800',
     color: COLORS.textPrimary,
     letterSpacing: 0.4
   },
   subtitle: {
-    fontSize: SIZES.bodyText,
+    fontSize: 18,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    maxWidth: 280,
-    lineHeight: 20
+    maxWidth: 300,
+    lineHeight: 26,
+    marginBottom: SPACING.giant
   },
   highScoreCard: {
     backgroundColor: COLORS.panel,
-    borderColor: COLORS.cardBorder,
-    borderWidth: 1,
-    borderRadius: SIZES.radiusLg,
-    paddingVertical: SPACING.xxl,
+    borderRadius: SIZES.radiusXxl,
+    paddingVertical: SPACING.xl,
     paddingHorizontal: SPACING.giant,
     alignItems: 'center',
-    minWidth: 180
+    minWidth: 220,
+    marginBottom: SPACING.huge,
+    borderWidth: 2,
+    borderColor: '#E8EDFB'
   },
   highScoreLabel: {
-    fontSize: SIZES.caption,
+    fontSize: 12,
+    fontWeight: '700',
     color: COLORS.textSecondary,
     marginBottom: SPACING.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8
+    letterSpacing: 2
   },
   highScoreValue: {
-    fontSize: SIZES.score,
-    fontWeight: '800',
+    fontSize: 32,
+    fontWeight: '900',
     color: COLORS.textPrimary
   },
   startButton: {
     backgroundColor: COLORS.accent,
-    borderRadius: SIZES.radiusLg,
-    paddingVertical: SPACING.xxl,
-    paddingHorizontal: SPACING.giant,
-    minWidth: 180,
-    alignItems: 'center'
+    borderRadius: 100, // Balon gibi tam yuvarlak buton
+    paddingVertical: 20,
+    paddingHorizontal: 60,
+    elevation: 8,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
   },
   startButtonText: {
     color: COLORS.white,
-    fontWeight: '800',
-    fontSize: SIZES.buttonText,
-    letterSpacing: 0.5
+    fontWeight: '900',
+    fontSize: 22,
+    letterSpacing: 1
   },
   invalidText: {
     minHeight: SIZES.invalidTextHeight,
@@ -340,8 +419,8 @@ const styles = StyleSheet.create({
   restartButton: {
     marginTop: SPACING.huge,
     backgroundColor: COLORS.restartButton,
-    borderRadius: SIZES.radiusLg,
-    paddingVertical: SPACING.xxl,
+    borderRadius: SIZES.radiusXl,
+    paddingVertical: SPACING.xl,
     paddingHorizontal: SPACING.giant,
     alignSelf: 'stretch',
     alignItems: 'center'
