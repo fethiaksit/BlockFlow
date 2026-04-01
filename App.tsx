@@ -117,9 +117,9 @@ export default function App() {
 
     if (finalPreview.valid && boardLayoutRef.current && drag) {
       const bounds = getPieceBounds(drag.piece.cells);
-      const { cellSize, pageX, pageY } = boardLayoutRef.current;
-      const anchorX = pageX + (finalPreview.col + bounds.minCol + bounds.width * drag.anchorRatioX) * cellSize;
-      const anchorY = pageY + (finalPreview.row + bounds.minRow + bounds.height * drag.anchorRatioY) * cellSize;
+      const { cellSize, gridX, gridY } = boardLayoutRef.current;
+      const anchorX = gridX + (finalPreview.col + bounds.minCol + bounds.width * drag.anchorRatioX) * cellSize;
+      const anchorY = gridY + (finalPreview.row + bounds.minRow + bounds.height * drag.anchorRatioY) * cellSize;
 
       ghostFingerX.value = withTiming(anchorX, { duration: 110, easing: Easing.out(Easing.quad) });
       ghostFingerY.value = withTiming(anchorY, { duration: 110, easing: Easing.out(Easing.quad) });
