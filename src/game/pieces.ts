@@ -1,7 +1,14 @@
 import { ActivePiece, PieceDefinition } from './types';
 
-const palette = ['#70D6FF', '#FF70A6', '#FFD670', '#8EEC83', '#B388FF', '#FF9F6E'];
-
+// Mevcut palette dizisini şu canlı renklerle değiştirin:
+const palette = [
+  '#FF6B6B', // Kiraz
+  '#4ECDC4', // Turkuaz
+  '#FFD93D', // Güneş Sarısı
+  '#6C5CE7', // Mor
+  '#A8E6CF', // Nane Yeşili
+  '#FF8B3D'  // Portakal
+];
 export const PIECE_LIBRARY: PieceDefinition[] = [
   { id: 'single', name: 'Single', color: palette[0], weight: 8, cells: [{ row: 0, col: 0 }] },
   {

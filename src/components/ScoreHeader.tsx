@@ -35,14 +35,24 @@ export const ScoreHeader = ({ score, highScore, lastMove }: Props) => {
 };
 
 const styles = StyleSheet.create({
+  card: {
+    backgroundColor: COLORS.panel,
+    borderRadius: SIZES.radiusXl,
+    paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.xxl,
+    // Derinlik ekleyin
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
   wrapper: {
     width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: SPACING.lg,
-    marginBottom: SPACING.xxl
-  },
-  card: {
+    marginBottom: SPACING.xxl,
     backgroundColor: COLORS.panel,
     borderRadius: SIZES.radiusXl,
     paddingVertical: SPACING.xl,
