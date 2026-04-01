@@ -1,5 +1,5 @@
-import Animated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { StyleSheet, View } from 'react-native';
+import Animated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { ActivePiece } from '../game/types';
 import { getPieceBounds } from '../game/pieces';
 
@@ -8,19 +8,21 @@ type Props = {
   fingerX: SharedValue<number>;
   fingerY: SharedValue<number>;
   opacity: SharedValue<number>;
+  scale: SharedValue<number>;
   cellSize?: number;
 };
 
 const FALLBACK_CELL_SIZE = 24;
 
-export const DragGhost = ({ piece, fingerX, fingerY, opacity, cellSize = FALLBACK_CELL_SIZE }: Props) => {
+export const DragGhost = ({ piece, fingerX, fingerY, opacity, scale, cellSize = FALLBACK_CELL_SIZE }: Props) => {
   const bounds = getPieceBounds(piece.cells);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [
       { translateX: fingerX.value - (bounds.width * cellSize) / 2 },
-      { translateY: fingerY.value - (bounds.height * cellSize) / 2 }
+      { translateY: fingerY.value - (bounds.height * cellSize) / 2 },
+      { scale: scale.value }
     ]
   }));
 

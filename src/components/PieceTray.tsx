@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import { SharedValue } from 'react-native-reanimated';
 import { ActivePiece } from '../game/types';
 import { PieceCard } from './PieceCard';
 
@@ -7,6 +8,10 @@ type Props = {
   draggingPieceId?: string;
   selectedPieceId?: string | null;
   disabled?: boolean;
+  fingerX: SharedValue<number>;
+  fingerY: SharedValue<number>;
+  ghostScale: SharedValue<number>;
+  ghostOpacity: SharedValue<number>;
   onSelectPiece: (pieceId: string) => void;
   onDragStart: (pieceId: string, x: number, y: number, originX: number, originY: number) => void;
   onDragMove: (x: number, y: number) => void;
@@ -18,6 +23,10 @@ export const PieceTray = ({
   draggingPieceId,
   selectedPieceId,
   disabled,
+  fingerX,
+  fingerY,
+  ghostScale,
+  ghostOpacity,
   onSelectPiece,
   onDragStart,
   onDragMove,
@@ -33,6 +42,10 @@ export const PieceTray = ({
           disabled={disabled}
           hidden={draggingPieceId === piece.instanceId}
           selected={selectedPieceId === piece.instanceId}
+          fingerX={fingerX}
+          fingerY={fingerY}
+          ghostScale={ghostScale}
+          ghostOpacity={ghostOpacity}
           onSelect={onSelectPiece}
           onDragStart={onDragStart}
           onDragMove={onDragMove}

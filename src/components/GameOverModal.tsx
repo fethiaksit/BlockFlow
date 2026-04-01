@@ -1,4 +1,6 @@
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useEffect } from 'react';
 import { COLORS } from '../constants/game';
 
 type Props = {
@@ -9,17 +11,28 @@ type Props = {
 };
 
 export const GameOverModal = ({ visible, score, highScore, onRestart }: Props) => {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(visible ? 1 : 0, { duration: 220 });
+  }, [progress, visible]);
+
+  const animatedCardStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ scale: 0.94 + progress.value * 0.06 }, { translateY: (1 - progress.value) * 10 }]
+  }));
+
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="none">
       <View style={styles.backdrop}>
-        <View style={styles.card}>
+        <Animated.View style={[styles.card, animatedCardStyle]}>
           <Text style={styles.title}>Oyun Bitti</Text>
           <Text style={styles.value}>Skor: {score}</Text>
           <Text style={styles.sub}>High Score: {highScore}</Text>
           <Pressable style={styles.button} onPress={onRestart}>
             <Text style={styles.buttonText}>Yeniden Başlat</Text>
           </Pressable>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
