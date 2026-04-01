@@ -77,7 +77,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   startDrag: (pieceId, fingerX, fingerY, anchorRatioX, anchorRatioY) => {
     const piece = get().hand.find((item) => item.instanceId === pieceId);
-    if (!piece || get().gameOver) return;
+    if (!piece || !piece.instanceId || !Array.isArray(piece.cells) || piece.cells.length === 0 || get().gameOver) return;
 
     set({
       selectedPieceId: pieceId,

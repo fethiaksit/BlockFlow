@@ -40,9 +40,11 @@ export const PieceTray = ({
   onDragMove,
   onDragEnd
 }: Props) => {
+  const safeHand = Array.isArray(hand) ? hand.filter((piece) => Boolean(piece?.instanceId) && Array.isArray(piece?.cells)) : [];
+
   return (
     <View style={styles.row}>
-      {hand.map((piece) => (
+      {safeHand.map((piece) => (
         <PieceCard
           key={piece.instanceId}
           piece={piece}
