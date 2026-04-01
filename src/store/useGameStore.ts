@@ -12,6 +12,8 @@ type DragState = {
   piece: ActivePiece;
   fingerX: number;
   fingerY: number;
+  anchorRatioX: number;
+  anchorRatioY: number;
 } | null;
 
 type GameState = {
@@ -28,7 +30,7 @@ type GameState = {
   loadInitial: () => Promise<void>;
   resetGame: () => void;
   selectPiece: (pieceId: string | null) => void;
-  startDrag: (pieceId: string, fingerX: number, fingerY: number) => void;
+  startDrag: (pieceId: string, fingerX: number, fingerY: number, anchorRatioX: number, anchorRatioY: number) => void;
   moveDrag: (fingerX: number, fingerY: number) => void;
   stopDrag: () => void;
   setPreview: (preview: PlacementPreview) => void;
@@ -73,11 +75,21 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ selectedPieceId: pieceId });
   },
 
-  startDrag: (pieceId, fingerX, fingerY) => {
+  startDrag: (pieceId, fingerX, fingerY, anchorRatioX, anchorRatioY) => {
     const piece = get().hand.find((item) => item.instanceId === pieceId);
     if (!piece || get().gameOver) return;
 
-    set({ selectedPieceId: pieceId, drag: { piece, fingerX, fingerY }, preview: null });
+    set({
+      selectedPieceId: pieceId,
+      drag: {
+        piece,
+        fingerX,
+        fingerY,
+        anchorRatioX: Number.isFinite(anchorRatioX) ? anchorRatioX : 0.5,
+        anchorRatioY: Number.isFinite(anchorRatioY) ? anchorRatioY : 0.5
+      },
+      preview: null
+    });
   },
 
   moveDrag: (fingerX, fingerY) => {

@@ -25,13 +25,15 @@ export const calculateDropPreview = (
   fingerY: number,
   piece: ActivePiece,
   boardLayout: BoardLayout,
-  board: (0 | 1)[][]
+  board: (0 | 1)[][],
+  anchorRatioX = 0.5,
+  anchorRatioY = 0.5
 ): PlacementPreview => {
   if (!isPointInsideBoard(fingerX, fingerY, boardLayout)) {
     return null;
   }
 
-  const anchor = getPieceAnchorFromFinger(fingerX, fingerY, piece, boardLayout);
+  const anchor = getPieceAnchorFromFinger(fingerX, fingerY, piece, boardLayout, anchorRatioX, anchorRatioY);
 
   return {
     pieceId: piece.instanceId,

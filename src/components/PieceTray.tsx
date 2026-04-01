@@ -13,7 +13,15 @@ type Props = {
   ghostScale: SharedValue<number>;
   ghostOpacity: SharedValue<number>;
   onSelectPiece: (pieceId: string) => void;
-  onDragStart: (pieceId: string, x: number, y: number, originX: number, originY: number) => void;
+  onDragStart: (
+    pieceId: string,
+    x: number,
+    y: number,
+    originX: number,
+    originY: number,
+    anchorRatioX: number,
+    anchorRatioY: number
+  ) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: (x: number, y: number) => void;
 };

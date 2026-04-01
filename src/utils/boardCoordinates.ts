@@ -22,11 +22,15 @@ export const getPieceAnchorFromFinger = (
   fingerX: number,
   fingerY: number,
   piece: ActivePiece,
-  boardLayout: BoardLayout
+  boardLayout: BoardLayout,
+  anchorRatioX = 0.5,
+  anchorRatioY = 0.5
 ): BoardAnchor => {
   const bounds = getPieceBounds(piece.cells);
-  const localX = fingerX - boardLayout.pageX - (bounds.width * boardLayout.cellSize) / 2;
-  const localY = fingerY - boardLayout.pageY - (bounds.height * boardLayout.cellSize) / 2;
+  const safeAnchorRatioX = Math.max(0, Math.min(1, anchorRatioX));
+  const safeAnchorRatioY = Math.max(0, Math.min(1, anchorRatioY));
+  const localX = fingerX - boardLayout.pageX - bounds.width * boardLayout.cellSize * safeAnchorRatioX;
+  const localY = fingerY - boardLayout.pageY - bounds.height * boardLayout.cellSize * safeAnchorRatioY;
 
   return {
     row: toCellIndex(localY, boardLayout.cellSize) - bounds.minRow,
