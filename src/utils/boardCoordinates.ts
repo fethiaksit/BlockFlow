@@ -17,9 +17,27 @@ export type BoardAnchor = {
   col: number;
 };
 
-const toCellIndex = (value: number, cellSize: number): number => Math.floor(value / cellSize);
+const EDGE_EPSILON = 0.0001;
+
+const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+const clampToBoardCell = (value: number, cellSize: number): number =>
+  clamp(value, 0, BOARD_SIZE * cellSize - EDGE_EPSILON);
+const toCellIndex = (value: number, cellSize: number): number => Math.floor(clampToBoardCell(value, cellSize) / cellSize);
 
 const isInsideBoard = (row: number, col: number): boolean => row >= 0 && col >= 0 && row < BOARD_SIZE && col < BOARD_SIZE;
+
+export const getBoardLocalPoint = (absoluteX: number, absoluteY: number, boardLayout: BoardLayout): { localX: number; localY: number } => ({
+  localX: absoluteX - boardLayout.gridX,
+  localY: absoluteY - boardLayout.gridY
+});
+
+export const getBoardAnchorFromAbsolute = (absoluteX: number, absoluteY: number, boardLayout: BoardLayout): BoardAnchor => {
+  const { localX, localY } = getBoardLocalPoint(absoluteX, absoluteY, boardLayout);
+  return {
+    row: toCellIndex(localY, boardLayout.cellSize),
+    col: toCellIndex(localX, boardLayout.cellSize)
+  };
+};
 
 export const getPieceAnchorFromFinger = (
   fingerX: number,
@@ -33,10 +51,15 @@ export const getPieceAnchorFromFinger = (
   const safeAnchorRatioY = Math.max(0, Math.min(1, anchorRatioY));
   const bounds = getPieceBounds(piece.cells);
   const pieceTopLeft = getPieceTopLeftFromFinger(fingerX, fingerY, piece, boardLayout, safeAnchorRatioX, safeAnchorRatioY);
+  const pieceTopLeftAnchor = getBoardAnchorFromAbsolute(
+    pieceTopLeft.localX + boardLayout.gridX,
+    pieceTopLeft.localY + boardLayout.gridY,
+    boardLayout
+  );
 
   return {
-    row: toCellIndex(pieceTopLeft.localY, boardLayout.cellSize) - bounds.minRow,
-    col: toCellIndex(pieceTopLeft.localX, boardLayout.cellSize) - bounds.minCol
+    row: clamp(pieceTopLeftAnchor.row - bounds.minRow, 0, BOARD_SIZE - 1),
+    col: clamp(pieceTopLeftAnchor.col - bounds.minCol, 0, BOARD_SIZE - 1)
   };
 };
 
