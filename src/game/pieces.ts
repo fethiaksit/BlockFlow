@@ -113,6 +113,17 @@ export const drawRandomPiece = (): ActivePiece => {
 export const drawHand = (count: number): ActivePiece[] => Array.from({ length: count }, drawRandomPiece);
 
 export const getPieceBounds = (cells: { row: number; col: number }[]) => {
+  if (!Array.isArray(cells) || cells.length === 0) {
+    return {
+      minRow: 0,
+      minCol: 0,
+      maxRow: 0,
+      maxCol: 0,
+      width: 1,
+      height: 1
+    };
+  }
+
   const rows = cells.map((cell) => cell.row);
   const cols = cells.map((cell) => cell.col);
   const minRow = Math.min(...rows);

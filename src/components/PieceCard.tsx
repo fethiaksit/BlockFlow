@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, SharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -45,10 +45,12 @@ export const PieceCard = ({
   onDragMove,
   onDragEnd
 }: Props) => {
-  const bounds = getPieceBounds(piece.cells);
+  const safeCells = Array.isArray(piece?.cells) ? piece.cells : [];
+  const bounds = getPieceBounds(safeCells);
   const cardRef = useRef<View>(null);
   const pieceGridRef = useRef<View>(null);
   const dragOriginRef = useRef<{ x: number; y: number } | null>(null);
+
   const getAmplifiedFingerPosition = (absoluteX: number, absoluteY: number): { x: number; y: number } => {
     const origin = dragOriginRef.current;
     if (!origin) {
@@ -62,6 +64,8 @@ export const PieceCard = ({
   };
 
   const startDragFromEvent = (x: number, y: number) => {
+    if (!piece?.instanceId) return;
+
     cardRef.current?.measureInWindow((cardPageX, cardPageY, width, height) => {
       const originX = cardPageX + width / 2;
       const originY = cardPageY + height / 2;
@@ -79,6 +83,36 @@ export const PieceCard = ({
       });
     });
   };
+
+  const handlePanBeginJS = useCallback(
+    (startX: number, startY: number) => {
+      dragOriginRef.current = { x: startX, y: startY };
+      startDragFromEvent(startX, startY);
+    },
+    [piece?.instanceId]
+  );
+
+  const handlePanUpdateJS = useCallback(
+    (absoluteX: number, absoluteY: number) => {
+      const amplified = getAmplifiedFingerPosition(absoluteX, absoluteY);
+      fingerX.value = amplified.x;
+      fingerY.value = amplified.y;
+      onDragMove(amplified.x, amplified.y);
+    },
+    [fingerX, fingerY, onDragMove]
+  );
+
+  const handlePanEndJS = useCallback(
+    (absoluteX: number, absoluteY: number) => {
+      const amplified = getAmplifiedFingerPosition(absoluteX, absoluteY);
+      onDragEnd(amplified.x, amplified.y);
+    },
+    [onDragEnd]
+  );
+
+  const handlePanFinalizeJS = useCallback(() => {
+    dragOriginRef.current = null;
+  }, []);
 
   const tapGesture = Gesture.Tap()
     .enabled(!disabled)
@@ -100,32 +134,19 @@ export const PieceCard = ({
       fingerY.value = startY;
       ghostScale.value = withTiming(1.05, { duration: 90 });
       ghostOpacity.value = withTiming(0.95, { duration: 90 });
-      runOnJS(() => {
-        dragOriginRef.current = { x: startX, y: startY };
-        startDragFromEvent(startX, startY);
-      })();
+      runOnJS(handlePanBeginJS)(startX, startY);
     })
     .onUpdate((event) => {
       'worklet';
-      runOnJS((absoluteX: number, absoluteY: number) => {
-        const amplified = getAmplifiedFingerPosition(absoluteX, absoluteY);
-        fingerX.value = amplified.x;
-        fingerY.value = amplified.y;
-        onDragMove(amplified.x, amplified.y);
-      })(event.absoluteX, event.absoluteY);
+      runOnJS(handlePanUpdateJS)(event.absoluteX, event.absoluteY);
     })
     .onEnd((event) => {
       'worklet';
-      runOnJS((absoluteX: number, absoluteY: number) => {
-        const amplified = getAmplifiedFingerPosition(absoluteX, absoluteY);
-        onDragEnd(amplified.x, amplified.y);
-      })(event.absoluteX, event.absoluteY);
+      runOnJS(handlePanEndJS)(event.absoluteX, event.absoluteY);
     })
     .onFinalize(() => {
       'worklet';
-      runOnJS(() => {
-        dragOriginRef.current = null;
-      })();
+      runOnJS(handlePanFinalizeJS)();
       ghostScale.value = withTiming(1, { duration: 120 });
       ghostOpacity.value = withTiming(1, { duration: 120 });
     });
@@ -140,7 +161,7 @@ export const PieceCard = ({
     <GestureDetector gesture={composedGesture}>
       <Animated.View ref={cardRef} style={[styles.card, disabled && styles.disabled, selected && styles.selected, hiddenStyle]}>
         <View ref={pieceGridRef} style={{ width: bounds.width * scaleCell, height: bounds.height * scaleCell }}>
-          {piece.cells.map((cell, index) => (
+          {safeCells.map((cell, index) => (
             <View
               key={`${piece.instanceId}-${index}`}
               style={[
