@@ -10,18 +10,31 @@ type Props = {
   opacity: SharedValue<number>;
   scale: SharedValue<number>;
   cellSize?: number;
+  anchorRatioX?: number;
+  anchorRatioY?: number;
 };
 
 const FALLBACK_CELL_SIZE = 24;
 
-export const DragGhost = ({ piece, fingerX, fingerY, opacity, scale, cellSize = FALLBACK_CELL_SIZE }: Props) => {
+export const DragGhost = ({
+  piece,
+  fingerX,
+  fingerY,
+  opacity,
+  scale,
+  cellSize = FALLBACK_CELL_SIZE,
+  anchorRatioX = 0.5,
+  anchorRatioY = 0.5
+}: Props) => {
   const bounds = getPieceBounds(piece.cells);
+  const safeAnchorRatioX = Math.max(0, Math.min(1, anchorRatioX));
+  const safeAnchorRatioY = Math.max(0, Math.min(1, anchorRatioY));
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [
-      { translateX: fingerX.value - (bounds.width * cellSize) / 2 },
-      { translateY: fingerY.value - (bounds.height * cellSize) / 2 },
+      { translateX: fingerX.value - bounds.width * cellSize * safeAnchorRatioX },
+      { translateY: fingerY.value - bounds.height * cellSize * safeAnchorRatioY },
       { scale: scale.value }
     ]
   }));

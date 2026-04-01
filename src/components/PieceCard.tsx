@@ -16,7 +16,15 @@ type Props = {
   ghostScale: SharedValue<number>;
   ghostOpacity: SharedValue<number>;
   onSelect: (pieceId: string) => void;
-  onDragStart: (pieceId: string, x: number, y: number, originX: number, originY: number) => void;
+  onDragStart: (
+    pieceId: string,
+    x: number,
+    y: number,
+    originX: number,
+    originY: number,
+    anchorRatioX: number,
+    anchorRatioY: number
+  ) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: (x: number, y: number) => void;
 };
@@ -38,10 +46,24 @@ export const PieceCard = ({
 }: Props) => {
   const bounds = getPieceBounds(piece.cells);
   const cardRef = useRef<View>(null);
+  const pieceGridRef = useRef<View>(null);
 
   const startDragFromEvent = (x: number, y: number) => {
-    cardRef.current?.measureInWindow((pageX, pageY, width, height) => {
-      onDragStart(piece.instanceId, x, y, pageX + width / 2, pageY + height / 2);
+    cardRef.current?.measureInWindow((cardPageX, cardPageY, width, height) => {
+      const originX = cardPageX + width / 2;
+      const originY = cardPageY + height / 2;
+
+      if (!pieceGridRef.current) {
+        onDragStart(piece.instanceId, x, y, originX, originY, 0.5, 0.5);
+        return;
+      }
+
+      pieceGridRef.current.measureInWindow((gridPageX, gridPageY, gridWidth, gridHeight) => {
+        const anchorRatioX = gridWidth > 0 ? (x - gridPageX) / gridWidth : 0.5;
+        const anchorRatioY = gridHeight > 0 ? (y - gridPageY) / gridHeight : 0.5;
+
+        onDragStart(piece.instanceId, x, y, originX, originY, anchorRatioX, anchorRatioY);
+      });
     });
   };
 
@@ -90,7 +112,7 @@ export const PieceCard = ({
   return (
     <GestureDetector gesture={composedGesture}>
       <Animated.View ref={cardRef} style={[styles.card, disabled && styles.disabled, selected && styles.selected, hiddenStyle]}>
-        <View style={{ width: bounds.width * scaleCell, height: bounds.height * scaleCell }}>
+        <View ref={pieceGridRef} style={{ width: bounds.width * scaleCell, height: bounds.height * scaleCell }}>
           {piece.cells.map((cell, index) => (
             <View
               key={`${piece.instanceId}-${index}`}

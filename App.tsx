@@ -62,18 +62,34 @@ export default function App() {
       return null;
     }
 
-    const nextPreview = calculateDropPreview(x, y, activeDrag.piece, activeBoardLayout, state.board);
+    const nextPreview = calculateDropPreview(
+      x,
+      y,
+      activeDrag.piece,
+      activeBoardLayout,
+      state.board,
+      activeDrag.anchorRatioX,
+      activeDrag.anchorRatioY
+    );
     state.setPreview(nextPreview);
     return nextPreview;
   };
 
-  const handleDragStart = (pieceId: string, x: number, y: number, originX: number, originY: number) => {
+  const handleDragStart = (
+    pieceId: string,
+    x: number,
+    y: number,
+    originX: number,
+    originY: number,
+    anchorRatioX: number,
+    anchorRatioY: number
+  ) => {
     dragOriginRef.current = { x: originX, y: originY };
     ghostFingerX.value = x;
     ghostFingerY.value = y;
     ghostScale.value = withTiming(1.05, { duration: 90 });
     ghostOpacity.value = withTiming(0.95, { duration: 90 });
-    startDrag(pieceId, x, y);
+    startDrag(pieceId, x, y, anchorRatioX, anchorRatioY);
   };
 
   const handleDragMove = (x: number, y: number) => {
@@ -102,11 +118,11 @@ export default function App() {
     if (finalPreview.valid && boardLayoutRef.current && drag) {
       const bounds = getPieceBounds(drag.piece.cells);
       const { cellSize, pageX, pageY } = boardLayoutRef.current;
-      const centerX = pageX + (finalPreview.col + bounds.minCol + bounds.width / 2) * cellSize;
-      const centerY = pageY + (finalPreview.row + bounds.minRow + bounds.height / 2) * cellSize;
+      const anchorX = pageX + (finalPreview.col + bounds.minCol + bounds.width * drag.anchorRatioX) * cellSize;
+      const anchorY = pageY + (finalPreview.row + bounds.minRow + bounds.height * drag.anchorRatioY) * cellSize;
 
-      ghostFingerX.value = withTiming(centerX, { duration: 110, easing: Easing.out(Easing.quad) });
-      ghostFingerY.value = withTiming(centerY, { duration: 110, easing: Easing.out(Easing.quad) });
+      ghostFingerX.value = withTiming(anchorX, { duration: 110, easing: Easing.out(Easing.quad) });
+      ghostFingerY.value = withTiming(anchorY, { duration: 110, easing: Easing.out(Easing.quad) });
       ghostScale.value = withSequence(withTiming(1.05, { duration: 60 }), withTiming(1, { duration: 80 }));
 
       ghostOpacity.value = withTiming(0, { duration: 130 }, (finished) => {
@@ -188,6 +204,8 @@ export default function App() {
             opacity={ghostOpacity}
             scale={ghostScale}
             cellSize={boardLayoutRef.current?.cellSize}
+            anchorRatioX={drag.anchorRatioX}
+            anchorRatioY={drag.anchorRatioY}
           />
         ) : null}
 
