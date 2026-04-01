@@ -55,7 +55,19 @@ const PreviewLayerCell = ({ visible, valid, cellSize }: { visible: boolean; vali
   );
 };
 
-const ClearPulseCell = ({ row, col, cellSize }: { row: number; col: number; cellSize: number }) => {
+const ClearPulseCell = ({
+  row,
+  col,
+  cellSize,
+  cellStep,
+  cellMargin
+}: {
+  row: number;
+  col: number;
+  cellSize: number;
+  cellStep: number;
+  cellMargin: number;
+}) => {
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -75,8 +87,8 @@ const ClearPulseCell = ({ row, col, cellSize }: { row: number; col: number; cell
         {
           width: cellSize,
           height: cellSize,
-          left: col * cellSize + 1,
-          top: row * cellSize + 1
+          left: col * cellStep + cellMargin,
+          top: row * cellStep + cellMargin
         },
         style
       ]}
@@ -90,7 +102,10 @@ export const Board = ({ board, sizePx, preview, draggingPiece, gameOver = false,
   const clearPulseIdRef = useRef(0);
   const [clearingCells, setClearingCells] = useState<ClearingCell[]>([]);
   const boardInnerPadding = 2;
-  const cellSize = (sizePx - boardInnerPadding * 2) / BOARD_SIZE;
+  const cellMargin = 1;
+  const gridSize = sizePx - boardInnerPadding * 2;
+  const cellStep = gridSize / BOARD_SIZE;
+  const cellSize = cellStep - cellMargin * 2;
 
   const boardScale = useSharedValue(1);
   const boardOpacity = useSharedValue(1);
@@ -182,7 +197,7 @@ export const Board = ({ board, sizePx, preview, draggingPiece, gameOver = false,
                 ]}
               >
                 {typeof previewState === 'boolean' ? (
-                  <PreviewLayerCell visible valid={previewState} cellSize={cellSize - 2} />
+                  <PreviewLayerCell visible valid={previewState} cellSize={cellSize} />
                 ) : null}
               </View>
             );
@@ -191,7 +206,14 @@ export const Board = ({ board, sizePx, preview, draggingPiece, gameOver = false,
       ))}
 
       {clearingCells.map((cell) => (
-        <ClearPulseCell key={cell.key} row={cell.row} col={cell.col} cellSize={cellSize} />
+        <ClearPulseCell
+          key={cell.key}
+          row={cell.row}
+          col={cell.col}
+          cellSize={cellSize}
+          cellStep={cellStep}
+          cellMargin={cellMargin}
+        />
       ))}
     </Animated.View>
   );
@@ -199,6 +221,7 @@ export const Board = ({ board, sizePx, preview, draggingPiece, gameOver = false,
 
 const styles = StyleSheet.create({
   board: {
+    alignSelf: 'center',
     backgroundColor: COLORS.boardBackground,
     borderRadius: 12,
     padding: 2,
