@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Easing, runOnJS, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { Board } from './src/components/Board';
@@ -14,7 +14,8 @@ import { useGameStore } from './src/store/useGameStore';
 import { BoardLayout, calculateDropPreview, PlacementPreview } from './src/utils/drag';
 
 export default function App() {
-  const { boardSizePx } = useBoardSize();
+  const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined);
+  const { boardSizePx } = useBoardSize(containerWidth);
 
   const {
     board,
@@ -157,10 +158,15 @@ export default function App() {
     return preview.valid ? '' : 'Geçersiz yerleştirme';
   }, [drag, preview, invalidDropPulse]);
 
+  const handleContainerLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setContainerWidth((prev) => (prev === width ? prev : width));
+  };
+
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
+        <View style={styles.container} onLayout={handleContainerLayout}>
           <Text style={styles.title}>BlockFlow</Text>
 
           <ScoreHeader score={score} highScore={highScore} lastMove={lastMove} />
