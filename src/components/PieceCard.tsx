@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
 import { ActivePiece } from '../game/types';
 import { getPieceBounds } from '../game/pieces';
 
@@ -21,23 +20,25 @@ export const PieceCard = ({ piece, scaleCell, disabled, hidden, selected, onSele
 
   const tapGesture = Gesture.Tap()
     .enabled(!disabled)
+    .runOnJS(true)
     .onEnd((_event, success) => {
       if (success) {
-        runOnJS(onSelect)(piece.instanceId);
+        onSelect(piece.instanceId);
       }
     });
 
   const panGesture = Gesture.Pan()
     .enabled(!disabled)
     .minDistance(4)
+    .runOnJS(true)
     .onStart((event) => {
-      runOnJS(onDragStart)(piece.instanceId, event.absoluteX, event.absoluteY);
+      onDragStart(piece.instanceId, event.absoluteX, event.absoluteY);
     })
     .onUpdate((event) => {
-      runOnJS(onDragMove)(event.absoluteX, event.absoluteY);
+      onDragMove(event.absoluteX, event.absoluteY);
     })
     .onFinalize((event) => {
-      runOnJS(onDragEnd)(event.absoluteX, event.absoluteY);
+      onDragEnd(event.absoluteX, event.absoluteY);
     });
 
   const composedGesture = Gesture.Simultaneous(tapGesture, panGesture);
