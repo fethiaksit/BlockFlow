@@ -13,8 +13,11 @@ import { useGameStore } from './src/store/useGameStore';
 import { COLORS, SIZES, SPACING } from './src/theme';
 import { BoardLayout, calculateDropPreview, PlacementPreview } from './src/utils/drag';
 
+type Screen = 'home' | 'game';
+
 export default function App() {
   const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined);
+  const [screen, setScreen] = useState<Screen>('home');
   const { boardSizePx } = useBoardSize(containerWidth);
 
   const {
@@ -33,7 +36,6 @@ export default function App() {
     selectPiece,
     startDrag,
     moveDrag,
-    setPreview,
     tryPlacePreview
   } = useGameStore();
 
@@ -48,6 +50,11 @@ export default function App() {
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
+
+  const handleStartPress = () => {
+    resetGame();
+    setScreen('game');
+  };
 
   const handleBoardLayoutMeasured = (layout: BoardLayout) => {
     boardLayoutRef.current = layout;
@@ -163,59 +170,81 @@ export default function App() {
     setContainerWidth((prev) => (prev === width ? prev : width));
   };
 
+  const showHighScore = highScore > 0;
+
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container} onLayout={handleContainerLayout}>
-          <Text style={styles.title}>BlockFlow</Text>
+        {screen === 'home' ? (
+          <View style={[styles.container, styles.homeContainer]}>
+            <Text style={styles.title}>BlockFlow</Text>
+            <Text style={styles.subtitle}>Drag pieces, clear lines, and chase your best score.</Text>
 
-          <ScoreHeader score={score} highScore={highScore} lastMove={lastMove} />
+            {showHighScore ? (
+              <View style={styles.highScoreCard}>
+                <Text style={styles.highScoreLabel}>High Score</Text>
+                <Text style={styles.highScoreValue}>{highScore}</Text>
+              </View>
+            ) : null}
 
-          <Board
-            board={board}
-            sizePx={boardSizePx}
-            preview={preview}
-            draggingPiece={drag?.piece ?? null}
-            gameOver={gameOver}
-            onLayoutMeasured={handleBoardLayoutMeasured}
-          />
+            <Pressable style={styles.startButton} onPress={handleStartPress}>
+              <Text style={styles.startButtonText}>Start</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <View style={styles.container} onLayout={handleContainerLayout}>
+              <Text style={styles.title}>BlockFlow</Text>
 
-          {invalidText ? <Text style={styles.invalidText}>{invalidText}</Text> : <View style={styles.invalidPlaceholder} />}
+              <ScoreHeader score={score} highScore={highScore} lastMove={lastMove} />
 
-          <PieceTray
-            hand={hand}
-            draggingPieceId={drag?.piece.instanceId}
-            selectedPieceId={selectedPieceId}
-            disabled={gameOver}
-            fingerX={ghostFingerX}
-            fingerY={ghostFingerY}
-            ghostScale={ghostScale}
-            ghostOpacity={ghostOpacity}
-            onSelectPiece={selectPiece}
-            onDragStart={handleDragStart}
-            onDragMove={handleDragMove}
-            onDragEnd={handleDragEnd}
-          />
+              <Board
+                board={board}
+                sizePx={boardSizePx}
+                preview={preview}
+                draggingPiece={drag?.piece ?? null}
+                gameOver={gameOver}
+                onLayoutMeasured={handleBoardLayoutMeasured}
+              />
 
-          <Pressable style={styles.restartButton} onPress={resetGame}>
-            <Text style={styles.restartText}>Yeniden Başlat</Text>
-          </Pressable>
-        </View>
+              {invalidText ? <Text style={styles.invalidText}>{invalidText}</Text> : <View style={styles.invalidPlaceholder} />}
 
-        {drag ? (
-          <DragGhost
-            piece={drag.piece}
-            fingerX={ghostFingerX}
-            fingerY={ghostFingerY}
-            opacity={ghostOpacity}
-            scale={ghostScale}
-            cellSize={boardLayoutRef.current?.cellSize}
-            anchorRatioX={drag.anchorRatioX}
-            anchorRatioY={drag.anchorRatioY}
-          />
-        ) : null}
+              <PieceTray
+                hand={hand}
+                draggingPieceId={drag?.piece.instanceId}
+                selectedPieceId={selectedPieceId}
+                disabled={gameOver}
+                fingerX={ghostFingerX}
+                fingerY={ghostFingerY}
+                ghostScale={ghostScale}
+                ghostOpacity={ghostOpacity}
+                onSelectPiece={selectPiece}
+                onDragStart={handleDragStart}
+                onDragMove={handleDragMove}
+                onDragEnd={handleDragEnd}
+              />
 
-        <GameOverModal visible={gameOver} score={score} highScore={highScore} onRestart={resetGame} />
+              <Pressable style={styles.restartButton} onPress={resetGame}>
+                <Text style={styles.restartText}>Yeniden Başlat</Text>
+              </Pressable>
+            </View>
+
+            {drag ? (
+              <DragGhost
+                piece={drag.piece}
+                fingerX={ghostFingerX}
+                fingerY={ghostFingerY}
+                opacity={ghostOpacity}
+                scale={ghostScale}
+                cellSize={boardLayoutRef.current?.cellSize}
+                anchorRatioX={drag.anchorRatioX}
+                anchorRatioY={drag.anchorRatioY}
+              />
+            ) : null}
+
+            <GameOverModal visible={gameOver} score={score} highScore={highScore} onRestart={resetGame} />
+          </>
+        )}
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -237,11 +266,60 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xxxl,
     paddingBottom: SPACING.giant
   },
+  homeContainer: {
+    justifyContent: 'center'
+  },
   title: {
     color: COLORS.textPrimary,
     fontSize: SIZES.title,
     fontWeight: '800',
     marginBottom: SPACING.lg
+  },
+  subtitle: {
+    color: COLORS.textSecondary,
+    fontSize: SIZES.bodyText,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: SPACING.huge,
+    maxWidth: 280
+  },
+  highScoreCard: {
+    width: '100%',
+    maxWidth: 280,
+    borderRadius: SIZES.radiusXl,
+    paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.giant,
+    backgroundColor: COLORS.panel,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    alignItems: 'center',
+    marginBottom: SPACING.huge
+  },
+  highScoreLabel: {
+    color: COLORS.textSecondary,
+    fontSize: SIZES.caption,
+    fontWeight: '600',
+    marginBottom: SPACING.md
+  },
+  highScoreValue: {
+    color: COLORS.textPrimary,
+    fontSize: SIZES.score,
+    fontWeight: '800'
+  },
+  startButton: {
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: SPACING.giant,
+    paddingVertical: SPACING.xl,
+    borderRadius: SIZES.radiusLg,
+    minWidth: 160,
+    alignItems: 'center'
+  },
+  startButtonText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: SIZES.buttonText
   },
   invalidText: {
     color: COLORS.invalidText,
