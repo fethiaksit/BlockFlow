@@ -1,6 +1,6 @@
 import { canPlacePiece } from '../game/board';
 import { ActivePiece } from '../game/types';
-import { BoardLayout, getPieceAnchorFromFinger } from './boardCoordinates';
+import { BoardLayout, resolvePlacementAnchorFromFinger } from './boardCoordinates';
 
 export type { BoardLayout } from './boardCoordinates';
 
@@ -11,15 +11,6 @@ export type PlacementPreview = {
   valid: boolean;
 } | null;
 
-const isPointInsideBoard = (x: number, y: number, boardLayout: BoardLayout): boolean => {
-  return (
-    x >= boardLayout.gridX &&
-    x <= boardLayout.gridX + boardLayout.gridSize &&
-    y >= boardLayout.gridY &&
-    y <= boardLayout.gridY + boardLayout.gridSize
-  );
-};
-
 export const calculateDropPreview = (
   fingerX: number,
   fingerY: number,
@@ -29,11 +20,15 @@ export const calculateDropPreview = (
   anchorRatioX = 0.5,
   anchorRatioY = 0.5
 ): PlacementPreview => {
-  if (!isPointInsideBoard(fingerX, fingerY, boardLayout)) {
+  const anchor = resolvePlacementAnchorFromFinger(fingerX, fingerY, piece, boardLayout, {
+    anchorRatioX,
+    anchorRatioY,
+    hitSlopCells: 0.45
+  });
+
+  if (!anchor) {
     return null;
   }
-
-  const anchor = getPieceAnchorFromFinger(fingerX, fingerY, piece, boardLayout, anchorRatioX, anchorRatioY);
 
   return {
     pieceId: piece.instanceId,
