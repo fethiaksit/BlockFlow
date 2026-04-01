@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { SharedValue } from 'react-native-reanimated';
 import { ActivePiece } from '../game/types';
+import { SPACING } from '../theme';
 import { PieceCard } from './PieceCard';
 
 type Props = {
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
   row: {
     width: '100%',
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 14
+    gap: SPACING.lg,
+    marginTop: SPACING.xxxl
   }
 });

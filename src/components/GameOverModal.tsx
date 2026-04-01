@@ -1,7 +1,7 @@
+import { useEffect } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { useEffect } from 'react';
-import { COLORS } from '../constants/game';
+import { COLORS, SIZES, SPACING } from '../theme';
 
 type Props = {
   visible: boolean;
@@ -19,7 +19,7 @@ export const GameOverModal = ({ visible, score, highScore, onRestart }: Props) =
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
-    transform: [{ scale: 0.94 + progress.value * 0.06 }, { translateY: (1 - progress.value) * 10 }]
+    transform: [{ scale: SIZES.previewBaseScale + progress.value * SIZES.previewScaleDelta }, { translateY: (1 - progress.value) * SIZES.modalTranslateY }]
   }));
 
   return (
@@ -43,41 +43,41 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.58)'
+    backgroundColor: COLORS.backdrop
   },
   card: {
     width: '82%',
     backgroundColor: COLORS.panel,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: SIZES.radiusXxl,
+    padding: SPACING.giant,
     alignItems: 'center'
   },
   title: {
     color: COLORS.textPrimary,
-    fontSize: 24,
+    fontSize: SIZES.modalTitle,
     fontWeight: '800'
   },
   value: {
     color: COLORS.textPrimary,
-    marginTop: 14,
-    fontSize: 20,
+    marginTop: SPACING.xxxl,
+    fontSize: SIZES.modalValue,
     fontWeight: '700'
   },
   sub: {
     color: COLORS.textSecondary,
-    marginTop: 6,
-    fontSize: 14
+    marginTop: SPACING.md,
+    fontSize: SIZES.bodyText
   },
   button: {
-    marginTop: 18,
+    marginTop: SIZES.invalidTextHeight,
     backgroundColor: COLORS.accent,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 10
+    paddingHorizontal: SPACING.giant,
+    paddingVertical: SPACING.xxl,
+    borderRadius: SIZES.radiusLg
   },
   buttonText: {
-    color: '#FFF',
-    fontSize: 16,
+    color: COLORS.white,
+    fontSize: SIZES.buttonText,
     fontWeight: '700'
   }
 });

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../constants/game';
 import { MoveScoreBreakdown } from '../game/types';
+import { COLORS, SIZES, SPACING } from '../theme';
 
 type Props = {
   score: number;
@@ -39,32 +39,32 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12
+    gap: SPACING.lg,
+    marginBottom: SPACING.xxl
   },
   card: {
     backgroundColor: COLORS.panel,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    minWidth: 110
+    borderRadius: SIZES.radiusXl,
+    paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.xxl,
+    minWidth: SIZES.minScoreCardWidth
   },
   moveCard: {
     flex: 1
   },
   label: {
     color: COLORS.textSecondary,
-    fontSize: 12,
-    marginBottom: 2
+    fontSize: SIZES.smallText,
+    marginBottom: SPACING.xs
   },
   value: {
     color: COLORS.textPrimary,
-    fontSize: 24,
+    fontSize: SIZES.score,
     fontWeight: '700'
   },
   moveText: {
     color: COLORS.textPrimary,
-    fontSize: 12,
+    fontSize: SIZES.smallText,
     fontWeight: '600'
   }
 });
