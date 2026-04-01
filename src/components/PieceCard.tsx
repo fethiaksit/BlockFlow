@@ -9,19 +9,29 @@ type Props = {
   scaleCell: number;
   disabled?: boolean;
   hidden?: boolean;
+  selected?: boolean;
+  onSelect: (pieceId: string) => void;
   onDragStart: (pieceId: string, x: number, y: number) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: (x: number, y: number) => void;
 };
 
-export const PieceCard = ({ piece, scaleCell, disabled, hidden, onDragStart, onDragMove, onDragEnd }: Props) => {
+export const PieceCard = ({ piece, scaleCell, disabled, hidden, selected, onSelect, onDragStart, onDragMove, onDragEnd }: Props) => {
   const bounds = getPieceBounds(piece.cells);
+
+  const tapGesture = Gesture.Tap()
+    .enabled(!disabled)
+    .onEnd((_event, success) => {
+      if (success) {
+        runOnJS(onSelect)(piece.instanceId);
+      }
+    });
 
   const panGesture = Gesture.Pan()
     .enabled(!disabled)
+    .minDistance(4)
     .onStart((event) => {
       runOnJS(onDragStart)(piece.instanceId, event.absoluteX, event.absoluteY);
-      runOnJS(onDragMove)(event.absoluteX, event.absoluteY);
     })
     .onUpdate((event) => {
       runOnJS(onDragMove)(event.absoluteX, event.absoluteY);
@@ -30,13 +40,15 @@ export const PieceCard = ({ piece, scaleCell, disabled, hidden, onDragStart, onD
       runOnJS(onDragEnd)(event.absoluteX, event.absoluteY);
     });
 
+  const composedGesture = Gesture.Simultaneous(tapGesture, panGesture);
+
   if (hidden) {
     return <View style={[styles.card, { opacity: 0.15 }]} />;
   }
 
   return (
-    <GestureDetector gesture={panGesture}>
-      <View style={[styles.card, disabled && styles.disabled]}>
+    <GestureDetector gesture={composedGesture}>
+      <View style={[styles.card, disabled && styles.disabled, selected && styles.selected]}>
         <View style={{ width: bounds.width * scaleCell, height: bounds.height * scaleCell }}>
           {piece.cells.map((cell, index) => (
             <View
@@ -71,6 +83,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 10
+  },
+  selected: {
+    borderColor: '#8BA8FF'
   },
   block: {
     position: 'absolute',

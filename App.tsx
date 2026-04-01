@@ -20,12 +20,14 @@ export default function App() {
     score,
     highScore,
     gameOver,
+    selectedPieceId,
     drag,
     preview,
     lastMove,
     invalidDropPulse,
     loadInitial,
     resetGame,
+    selectPiece,
     startDrag,
     moveDrag,
     setPreview,
@@ -61,9 +63,6 @@ export default function App() {
 
   const handleDragStart = (pieceId: string, x: number, y: number) => {
     startDrag(pieceId, x, y);
-    requestAnimationFrame(() => {
-      updatePreviewFromPoint(x, y);
-    });
   };
 
   const handleDragMove = (x: number, y: number) => {
@@ -74,7 +73,7 @@ export default function App() {
   const handleDragEnd = async (x: number, y: number) => {
     moveDrag(x, y);
     const finalPreview = updatePreviewFromPoint(x, y);
-    await tryPlacePreview(finalPreview);
+    await tryPlacePreview(finalPreview, finalPreview !== null);
   };
 
   const invalidText = useMemo(() => {
@@ -104,7 +103,9 @@ export default function App() {
           <PieceTray
             hand={hand}
             draggingPieceId={drag?.piece.instanceId}
+            selectedPieceId={selectedPieceId}
             disabled={gameOver}
+            onSelectPiece={selectPiece}
             onDragStart={handleDragStart}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
