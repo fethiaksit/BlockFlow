@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS, SharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { ActivePiece } from '../game/types';
 import { getPieceBounds } from '../game/pieces';
 
@@ -10,13 +11,31 @@ type Props = {
   disabled?: boolean;
   hidden?: boolean;
   selected?: boolean;
+  fingerX: SharedValue<number>;
+  fingerY: SharedValue<number>;
+  ghostScale: SharedValue<number>;
+  ghostOpacity: SharedValue<number>;
   onSelect: (pieceId: string) => void;
   onDragStart: (pieceId: string, x: number, y: number, originX: number, originY: number) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: (x: number, y: number) => void;
 };
 
-export const PieceCard = ({ piece, scaleCell, disabled, hidden, selected, onSelect, onDragStart, onDragMove, onDragEnd }: Props) => {
+export const PieceCard = ({
+  piece,
+  scaleCell,
+  disabled,
+  hidden,
+  selected,
+  fingerX,
+  fingerY,
+  ghostScale,
+  ghostOpacity,
+  onSelect,
+  onDragStart,
+  onDragMove,
+  onDragEnd
+}: Props) => {
   const bounds = getPieceBounds(piece.cells);
   const cardRef = useRef<View>(null);
 
@@ -38,22 +57,39 @@ export const PieceCard = ({ piece, scaleCell, disabled, hidden, selected, onSele
   const panGesture = Gesture.Pan()
     .enabled(!disabled)
     .minDistance(2)
-    .runOnJS(true)
     .onBegin((event) => {
-      startDragFromEvent(event.absoluteX, event.absoluteY);
+      'worklet';
+      fingerX.value = event.absoluteX;
+      fingerY.value = event.absoluteY;
+      ghostScale.value = withTiming(1.05, { duration: 90 });
+      ghostOpacity.value = withTiming(0.95, { duration: 90 });
+      runOnJS(startDragFromEvent)(event.absoluteX, event.absoluteY);
     })
     .onUpdate((event) => {
-      onDragMove(event.absoluteX, event.absoluteY);
+      'worklet';
+      fingerX.value = event.absoluteX;
+      fingerY.value = event.absoluteY;
+      runOnJS(onDragMove)(event.absoluteX, event.absoluteY);
     })
     .onEnd((event) => {
-      onDragEnd(event.absoluteX, event.absoluteY);
+      'worklet';
+      runOnJS(onDragEnd)(event.absoluteX, event.absoluteY);
+    })
+    .onFinalize(() => {
+      'worklet';
+      ghostScale.value = withTiming(1, { duration: 120 });
+      ghostOpacity.value = withTiming(1, { duration: 120 });
     });
 
   const composedGesture = Gesture.Race(panGesture, tapGesture);
 
+  const hiddenStyle = useAnimatedStyle(() => ({
+    opacity: hidden ? withTiming(0.12, { duration: 90 }) : withTiming(1, { duration: 90 })
+  }));
+
   return (
     <GestureDetector gesture={composedGesture}>
-      <View ref={cardRef} style={[styles.card, disabled && styles.disabled, selected && styles.selected, hidden && styles.hidden]}>
+      <Animated.View ref={cardRef} style={[styles.card, disabled && styles.disabled, selected && styles.selected, hiddenStyle]}>
         <View style={{ width: bounds.width * scaleCell, height: bounds.height * scaleCell }}>
           {piece.cells.map((cell, index) => (
             <View
@@ -72,7 +108,7 @@ export const PieceCard = ({ piece, scaleCell, disabled, hidden, selected, onSele
           ))}
         </View>
         <Text style={styles.name}>{piece.name}</Text>
-      </View>
+      </Animated.View>
     </GestureDetector>
   );
 };
@@ -91,9 +127,6 @@ const styles = StyleSheet.create({
   },
   selected: {
     borderColor: '#8BA8FF'
-  },
-  hidden: {
-    opacity: 0.15
   },
   block: {
     position: 'absolute',

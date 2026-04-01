@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { runOnJS, useSharedValue, withTiming } from 'react-native-reanimated';
+import { Easing, runOnJS, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { Board } from './src/components/Board';
 import { DragGhost } from './src/components/DragGhost';
 import { GameOverModal } from './src/components/GameOverModal';
 import { PieceTray } from './src/components/PieceTray';
 import { ScoreHeader } from './src/components/ScoreHeader';
 import { COLORS } from './src/constants/game';
+import { getPieceBounds } from './src/game/pieces';
 import { useBoardSize } from './src/hooks/useBoardSize';
 import { useGameStore } from './src/store/useGameStore';
 import { BoardLayout, calculateDropPreview, PlacementPreview } from './src/utils/drag';
@@ -41,6 +42,7 @@ export default function App() {
   const ghostFingerX = useSharedValue(0);
   const ghostFingerY = useSharedValue(0);
   const ghostOpacity = useSharedValue(0);
+  const ghostScale = useSharedValue(1);
 
   useEffect(() => {
     loadInitial();
@@ -69,20 +71,20 @@ export default function App() {
     dragOriginRef.current = { x: originX, y: originY };
     ghostFingerX.value = x;
     ghostFingerY.value = y;
-    ghostOpacity.value = 1;
+    ghostScale.value = withTiming(1.05, { duration: 90 });
+    ghostOpacity.value = withTiming(0.95, { duration: 90 });
     startDrag(pieceId, x, y);
   };
 
   const handleDragMove = (x: number, y: number) => {
-    ghostFingerX.value = x;
-    ghostFingerY.value = y;
     moveDrag(x, y);
     updatePreviewFromPoint(x, y);
   };
 
-  const handleInvalidDropAfterAnimation = async (finalPreview: PlacementPreview) => {
-    await tryPlacePreview(finalPreview, true);
-    ghostOpacity.value = 0;
+  const finalizeDrop = async (finalPreview: PlacementPreview, droppedOnBoard: boolean) => {
+    await tryPlacePreview(finalPreview, droppedOnBoard);
+    ghostOpacity.value = withTiming(0, { duration: 80 });
+    ghostScale.value = withTiming(1, { duration: 80 });
   };
 
   const handleDragEnd = async (x: number, y: number) => {
@@ -93,28 +95,42 @@ export default function App() {
     const finalPreview = updatePreviewFromPoint(x, y);
 
     if (!finalPreview) {
-      ghostOpacity.value = 0;
-      await tryPlacePreview(null, false);
+      await finalizeDrop(null, false);
       return;
     }
 
-    if (finalPreview.valid) {
-      ghostOpacity.value = 0;
-      await tryPlacePreview(finalPreview, true);
+    if (finalPreview.valid && boardLayoutRef.current && drag) {
+      const bounds = getPieceBounds(drag.piece.cells);
+      const { cellSize, pageX, pageY } = boardLayoutRef.current;
+      const centerX = pageX + (finalPreview.col + bounds.minCol + bounds.width / 2) * cellSize;
+      const centerY = pageY + (finalPreview.row + bounds.minRow + bounds.height / 2) * cellSize;
+
+      ghostFingerX.value = withTiming(centerX, { duration: 110, easing: Easing.out(Easing.quad) });
+      ghostFingerY.value = withTiming(centerY, { duration: 110, easing: Easing.out(Easing.quad) });
+      ghostScale.value = withSequence(withTiming(1.05, { duration: 60 }), withTiming(1, { duration: 80 }));
+
+      ghostOpacity.value = withTiming(0, { duration: 130 }, (finished) => {
+        if (finished) {
+          runOnJS(finalizeDrop)(finalPreview, true);
+        }
+      });
       return;
     }
 
     const origin = dragOriginRef.current;
     if (!origin) {
-      ghostOpacity.value = 0;
-      await tryPlacePreview(finalPreview, true);
+      await finalizeDrop(finalPreview, true);
       return;
     }
 
-    ghostFingerX.value = withTiming(origin.x, { duration: 180 });
-    ghostFingerY.value = withTiming(origin.y, { duration: 180 }, (finished) => {
+    ghostFingerX.value = withSequence(
+      withTiming(origin.x + 8, { duration: 45 }),
+      withTiming(origin.x - 8, { duration: 45 }),
+      withTiming(origin.x, { duration: 80 })
+    );
+    ghostFingerY.value = withTiming(origin.y, { duration: 160 }, (finished) => {
       if (finished) {
-        runOnJS(handleInvalidDropAfterAnimation)(finalPreview);
+        runOnJS(finalizeDrop)(finalPreview, true);
       }
     });
   };
@@ -138,6 +154,7 @@ export default function App() {
             sizePx={boardSizePx}
             preview={preview}
             draggingPiece={drag?.piece ?? null}
+            gameOver={gameOver}
             onLayoutMeasured={handleBoardLayoutMeasured}
           />
 
@@ -148,6 +165,10 @@ export default function App() {
             draggingPieceId={drag?.piece.instanceId}
             selectedPieceId={selectedPieceId}
             disabled={gameOver}
+            fingerX={ghostFingerX}
+            fingerY={ghostFingerY}
+            ghostScale={ghostScale}
+            ghostOpacity={ghostOpacity}
             onSelectPiece={selectPiece}
             onDragStart={handleDragStart}
             onDragMove={handleDragMove}
@@ -160,7 +181,14 @@ export default function App() {
         </View>
 
         {drag ? (
-          <DragGhost piece={drag.piece} fingerX={ghostFingerX} fingerY={ghostFingerY} opacity={ghostOpacity} cellSize={boardLayoutRef.current?.cellSize} />
+          <DragGhost
+            piece={drag.piece}
+            fingerX={ghostFingerX}
+            fingerY={ghostFingerY}
+            opacity={ghostOpacity}
+            scale={ghostScale}
+            cellSize={boardLayoutRef.current?.cellSize}
+          />
         ) : null}
 
         <GameOverModal visible={gameOver} score={score} highScore={highScore} onRestart={resetGame} />
