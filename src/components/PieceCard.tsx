@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, SharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { DRAG_SENSITIVITY } from '../constants/game';
 import { ActivePiece } from '../game/types';
 import { getPieceBounds } from '../game/pieces';
 
@@ -47,6 +48,18 @@ export const PieceCard = ({
   const bounds = getPieceBounds(piece.cells);
   const cardRef = useRef<View>(null);
   const pieceGridRef = useRef<View>(null);
+  const dragOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const getAmplifiedFingerPosition = (absoluteX: number, absoluteY: number): { x: number; y: number } => {
+    const origin = dragOriginRef.current;
+    if (!origin) {
+      return { x: absoluteX, y: absoluteY };
+    }
+
+    return {
+      x: origin.x + (absoluteX - origin.x) * DRAG_SENSITIVITY,
+      y: origin.y + (absoluteY - origin.y) * DRAG_SENSITIVITY
+    };
+  };
 
   const startDragFromEvent = (x: number, y: number) => {
     cardRef.current?.measureInWindow((cardPageX, cardPageY, width, height) => {
@@ -81,24 +94,38 @@ export const PieceCard = ({
     .minDistance(2)
     .onBegin((event) => {
       'worklet';
-      fingerX.value = event.absoluteX;
-      fingerY.value = event.absoluteY;
+      const startX = event.absoluteX;
+      const startY = event.absoluteY;
+      fingerX.value = startX;
+      fingerY.value = startY;
       ghostScale.value = withTiming(1.05, { duration: 90 });
       ghostOpacity.value = withTiming(0.95, { duration: 90 });
-      runOnJS(startDragFromEvent)(event.absoluteX, event.absoluteY);
+      runOnJS(() => {
+        dragOriginRef.current = { x: startX, y: startY };
+        startDragFromEvent(startX, startY);
+      })();
     })
     .onUpdate((event) => {
       'worklet';
-      fingerX.value = event.absoluteX;
-      fingerY.value = event.absoluteY;
-      runOnJS(onDragMove)(event.absoluteX, event.absoluteY);
+      runOnJS((absoluteX: number, absoluteY: number) => {
+        const amplified = getAmplifiedFingerPosition(absoluteX, absoluteY);
+        fingerX.value = amplified.x;
+        fingerY.value = amplified.y;
+        onDragMove(amplified.x, amplified.y);
+      })(event.absoluteX, event.absoluteY);
     })
     .onEnd((event) => {
       'worklet';
-      runOnJS(onDragEnd)(event.absoluteX, event.absoluteY);
+      runOnJS((absoluteX: number, absoluteY: number) => {
+        const amplified = getAmplifiedFingerPosition(absoluteX, absoluteY);
+        onDragEnd(amplified.x, amplified.y);
+      })(event.absoluteX, event.absoluteY);
     })
     .onFinalize(() => {
       'worklet';
+      runOnJS(() => {
+        dragOriginRef.current = null;
+      })();
       ghostScale.value = withTiming(1, { duration: 120 });
       ghostOpacity.value = withTiming(1, { duration: 120 });
     });
