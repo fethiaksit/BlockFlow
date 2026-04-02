@@ -1,4 +1,5 @@
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { loadSoundEnabled, saveSoundEnabled } from './storage';
 
 type SoundKey = 'click' | 'placement' | 'win' | 'gameOver';
 
@@ -21,6 +22,8 @@ const lastPlayedAt: Partial<Record<SoundKey, number>> = {};
 
 let preloadPromise: Promise<void> | null = null;
 let isLoaded = false;
+let soundEnabled = true;
+let soundPreferenceLoaded = false;
 
 const canPlaySound = (key: SoundKey) => {
   const now = Date.now();
@@ -33,6 +36,34 @@ const canPlaySound = (key: SoundKey) => {
 
   lastPlayedAt[key] = now;
   return true;
+};
+
+export const initializeSoundSettings = async () => {
+  if (soundPreferenceLoaded) {
+    return soundEnabled;
+  }
+
+  try {
+    soundEnabled = await loadSoundEnabled();
+  } catch {
+    soundEnabled = true;
+  }
+
+  soundPreferenceLoaded = true;
+  return soundEnabled;
+};
+
+export const getSoundEnabled = () => soundEnabled;
+
+export const setSoundEnabled = async (enabled: boolean) => {
+  soundEnabled = enabled;
+  soundPreferenceLoaded = true;
+
+  try {
+    await saveSoundEnabled(enabled);
+  } catch {
+    // no-op: ayar kaydetme hataları oyun deneyimini bozmamalı.
+  }
 };
 
 export const preloadSounds = async () => {
@@ -89,6 +120,10 @@ export const unloadSounds = async () => {
 };
 
 const playSound = async (key: SoundKey) => {
+  if (!soundEnabled) {
+    return;
+  }
+
   if (!canPlaySound(key)) {
     return;
   }

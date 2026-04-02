@@ -14,11 +14,14 @@ import { useGameStore } from './src/store/useGameStore';
 import { COLORS, SIZES, SPACING } from './src/theme';
 import { BoardLayout, calculateDropPreview, PlacementPreview } from './src/utils/drag';
 import {
+  getSoundEnabled,
+  initializeSoundSettings,
   playClickSound,
   playGameOverSound,
   playPlacementSound,
   playWinSound,
   preloadSounds,
+  setSoundEnabled,
   unloadSounds
 } from './src/utils/sound';
 
@@ -65,6 +68,7 @@ export default function App() {
   }, [loadInitial]);
 
   useEffect(() => {
+    void initializeSoundSettings();
     void preloadSounds();
 
     return () => {
@@ -113,15 +117,17 @@ export default function App() {
             </Pressable>
           </View>
         ) : (
-          <GameScreen />
+          <GameScreen onGoHome={() => setScreen('home')} />
         )}
       </SafeAreaView>
     </GestureHandlerRootView>
   );
 }
 
-function GameScreen() {
+function GameScreen({ onGoHome }: { onGoHome: () => void }) {
   const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
   const { boardSizePx } = useBoardSize(containerWidth);
 
   const {
@@ -151,6 +157,10 @@ function GameScreen() {
   const ghostFingerY = useSharedValue(0);
   const ghostOpacity = useSharedValue(0);
   const ghostScale = useSharedValue(1);
+
+  useEffect(() => {
+    setSoundOn(getSoundEnabled());
+  }, []);
 
   const handleBoardLayoutMeasured = (layout: BoardLayout) => {
     boardLayoutRef.current = layout;
@@ -287,11 +297,78 @@ function GameScreen() {
     setContainerWidth((prev) => (prev === width ? prev : width));
   };
 
+  const toggleSettings = () => {
+    void playClickSound();
+    setSettingsOpen((prev) => !prev);
+  };
+
+  const handleSoundToggle = async () => {
+    if (soundOn) {
+      void playClickSound();
+    }
+
+    const nextValue = !soundOn;
+    setSoundOn(nextValue);
+    await setSoundEnabled(nextValue);
+
+    if (nextValue) {
+      void playClickSound();
+    }
+  };
+
+  const handleGoHome = () => {
+    void playClickSound();
+    setSettingsOpen(false);
+    onGoHome();
+  };
+
+  const handleRestart = () => {
+    void playClickSound();
+    resetGame();
+    setSettingsOpen(false);
+  };
+
   return (
     <>
       <View style={styles.container} onLayout={handleContainerLayout}>
-        <View style={styles.gameTitleContainer}>
+        {settingsOpen ? <Pressable style={styles.settingsBackdrop} onPress={() => setSettingsOpen(false)} /> : null}
+
+        <View style={styles.gameTopRow}>
           <Text style={styles.gameTitle}>BlockFlow</Text>
+
+          <View style={styles.settingsAnchor}>
+            <Pressable
+              style={({ pressed }) => [styles.settingsIconButton, pressed && { opacity: 0.75 }]}
+              onPress={toggleSettings}
+            >
+              <Text style={styles.settingsIcon}>⚙️</Text>
+            </Pressable>
+
+            {settingsOpen ? (
+              <View style={styles.settingsDropdown}>
+                <Pressable
+                  style={({ pressed }) => [styles.settingsItem, pressed && styles.settingsItemPressed]}
+                  onPress={handleSoundToggle}
+                >
+                  <Text style={styles.settingsItemText}>Sound: {soundOn ? 'On' : 'Off'}</Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [styles.settingsItem, pressed && styles.settingsItemPressed]}
+                  onPress={handleGoHome}
+                >
+                  <Text style={styles.settingsItemText}>Go to Home</Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [styles.settingsItem, pressed && styles.settingsItemPressed]}
+                  onPress={handleRestart}
+                >
+                  <Text style={styles.settingsItemText}>Restart Game</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
         </View>
 
         <ScoreHeader score={score} highScore={highScore} lastMove={lastMove} />
@@ -327,10 +404,7 @@ function GameScreen() {
 
         <Pressable
           style={({ pressed }) => [styles.restartButton, pressed && { opacity: 0.8 }]}
-          onPress={() => {
-            void playClickSound();
-            resetGame();
-          }}
+          onPress={handleRestart}
         >
           <Text style={styles.restartText}>Yeniden Başlat</Text>
         </Pressable>
@@ -393,15 +467,71 @@ const styles = StyleSheet.create({
     color: COLORS.boardFilled,
     letterSpacing: -1
   },
-  gameTitleContainer: {
+  gameTopRow: {
     marginTop: SPACING.xl,
     marginBottom: SPACING.md,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 30
   },
   gameTitle: {
     fontSize: SIZES.title,
     fontWeight: '800',
     color: COLORS.textPrimary,
     letterSpacing: 0.4
+  },
+  settingsAnchor: {
+    position: 'relative'
+  },
+  settingsIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.panel,
+    borderWidth: 1,
+    borderColor: COLORS.boardBorder,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  settingsIcon: {
+    fontSize: 18
+  },
+  settingsBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20
+  },
+  settingsDropdown: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    marginTop: SPACING.md,
+    width: 170,
+    borderRadius: SIZES.radiusMd,
+    backgroundColor: COLORS.panel,
+    borderWidth: 1,
+    borderColor: COLORS.boardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden'
+  },
+  settingsItem: {
+    paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF2FF'
+  },
+  settingsItemPressed: {
+    backgroundColor: '#F7F9FF'
+  },
+  settingsItemText: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '600'
   },
   subtitle: {
     fontSize: 18,
