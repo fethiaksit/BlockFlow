@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent, Pressable, SafeAreaView, StyleSheet, Text, View, Dimensions } from 'react-native';
+import { LayoutChangeEvent, Pressable, SafeAreaView, StyleSheet, Text, View, Dimensions, Animated as RNAnimated } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Easing, runOnJS, useSharedValue, withSequence, withTiming, withRepeat } from 'react-native-reanimated';
 import Animated from 'react-native-reanimated';
@@ -56,6 +56,37 @@ function FloatingBubble({ size, color, top, left, duration }: { size: number, co
         opacity: 0.15,
       }, { transform: [{ translateY }] }]}
     />
+  );
+}
+
+function SoundToggle({ value, onToggle }: { value: boolean; onToggle: () => void }) {
+  const progress = useRef(new RNAnimated.Value(value ? 1 : 0)).current;
+
+  useEffect(() => {
+    RNAnimated.timing(progress, {
+      toValue: value ? 1 : 0,
+      duration: 180,
+      useNativeDriver: false
+    }).start();
+  }, [progress, value]);
+
+  const translateX = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, 20]
+  });
+
+  const trackColor = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#D5DDF5', COLORS.accent]
+  });
+
+  return (
+    <Pressable style={styles.settingsToggleRow} onPress={onToggle}>
+      <Text style={styles.settingsItemText}>Sound</Text>
+      <RNAnimated.View style={[styles.toggleTrack, { backgroundColor: trackColor }]}>
+        <RNAnimated.View style={[styles.toggleThumb, { transform: [{ translateX }] }]} />
+      </RNAnimated.View>
+    </Pressable>
   );
 }
 
@@ -346,12 +377,7 @@ function GameScreen({ onGoHome }: { onGoHome: () => void }) {
 
             {settingsOpen ? (
               <View style={styles.settingsDropdown}>
-                <Pressable
-                  style={({ pressed }) => [styles.settingsItem, pressed && styles.settingsItemPressed]}
-                  onPress={handleSoundToggle}
-                >
-                  <Text style={styles.settingsItemText}>Sound: {soundOn ? 'On' : 'Off'}</Text>
-                </Pressable>
+                <SoundToggle value={soundOn} onToggle={handleSoundToggle} />
 
                 <Pressable
                   style={({ pressed }) => [styles.settingsItem, pressed && styles.settingsItemPressed]}
@@ -402,12 +428,6 @@ function GameScreen({ onGoHome }: { onGoHome: () => void }) {
           onDragEnd={handleDragEnd}
         />
 
-        <Pressable
-          style={({ pressed }) => [styles.restartButton, pressed && { opacity: 0.8 }]}
-          onPress={handleRestart}
-        >
-          <Text style={styles.restartText}>Yeniden Başlat</Text>
-        </Pressable>
       </View>
 
       {drag ? (
@@ -532,6 +552,27 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: '600'
+  },
+  settingsToggleRow: {
+    minHeight: 50,
+    paddingHorizontal: SPACING.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF2FF'
+  },
+  toggleTrack: {
+    width: 42,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center'
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.white
   },
   subtitle: {
     fontSize: 18,

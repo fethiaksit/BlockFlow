@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, SharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { DRAG_SENSITIVITY } from '../constants/game';
@@ -178,7 +178,6 @@ export const PieceCard = ({
             />
           ))}
         </View>
-        <Text style={styles.name}>{piece.name}</Text>
       </Animated.View>
     </GestureDetector>
   );
@@ -202,12 +201,6 @@ const styles = StyleSheet.create({
   block: {
     position: 'absolute',
     borderRadius: SIZES.radiusSm
-  },
-  name: {
-    marginTop: SPACING.lg,
-    color: COLORS.textSecondary,
-    fontSize: SIZES.smallText,
-    fontWeight: '600'
   },
   disabled: {
     opacity: SIZES.opacityDisabled
