@@ -8,5 +8,6 @@ export const SCORE_VALUES = {
 };
 
 export const STORAGE_KEYS = {
-  highScore: 'blockflow_high_score'
+  highScore: 'blockflow_high_score',
+  soundEnabled: 'blockflow_sound_enabled'
 };
