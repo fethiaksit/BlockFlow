@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, SharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { DRAG_SENSITIVITY } from '../constants/game';
+import { DRAG_OFFSET_Y, DRAG_SENSITIVITY } from '../constants/game';
 import { getPieceBounds } from '../game/pieces';
 import { ActivePiece } from '../game/types';
 import { COLORS, SIZES, SPACING } from '../theme';
@@ -55,16 +55,16 @@ export const PieceCard = ({
   const getAmplifiedFingerPosition = (absoluteX: number, absoluteY: number): { x: number; y: number } => {
     const origin = dragOriginRef.current;
     if (!origin) {
-      return { x: absoluteX, y: absoluteY };
+      return { x: absoluteX, y: absoluteY + DRAG_OFFSET_Y };
     }
 
     return {
       x: origin.x + (absoluteX - origin.x) * DRAG_SENSITIVITY,
-      y: origin.y + (absoluteY - origin.y) * DRAG_SENSITIVITY
+      y: origin.y + (absoluteY - origin.y) * DRAG_SENSITIVITY + DRAG_OFFSET_Y
     };
   };
 
-  const startDragFromEvent = (x: number, y: number) => {
+  const startDragFromEvent = (x: number, visualY: number, touchY: number) => {
     if (!piece?.instanceId) return;
 
     cardRef.current?.measureInWindow((cardPageX, cardPageY, width, height) => {
@@ -72,15 +72,15 @@ export const PieceCard = ({
       const originY = cardPageY + height / 2;
 
       if (!pieceGridRef.current) {
-        onDragStart(piece.instanceId, x, y, originX, originY, 0.5, 0.5);
+        onDragStart(piece.instanceId, x, visualY, originX, originY, 0.5, 0.5);
         return;
       }
 
       pieceGridRef.current.measureInWindow((gridPageX, gridPageY, gridWidth, gridHeight) => {
         const anchorRatioX = gridWidth > 0 ? (x - gridPageX) / gridWidth : 0.5;
-        const anchorRatioY = gridHeight > 0 ? (y - gridPageY) / gridHeight : 0.5;
+        const anchorRatioY = gridHeight > 0 ? (touchY - gridPageY) / gridHeight : 0.5;
 
-        onDragStart(piece.instanceId, x, y, originX, originY, anchorRatioX, anchorRatioY);
+        onDragStart(piece.instanceId, x, visualY, originX, originY, anchorRatioX, anchorRatioY);
       });
     });
   };
@@ -88,7 +88,7 @@ export const PieceCard = ({
   const handlePanBeginJS = useCallback(
     (startX: number, startY: number) => {
       dragOriginRef.current = { x: startX, y: startY };
-      startDragFromEvent(startX, startY);
+      startDragFromEvent(startX, startY + DRAG_OFFSET_Y, startY);
     },
     [piece?.instanceId]
   );
@@ -130,12 +130,12 @@ export const PieceCard = ({
     .onBegin((event) => {
       'worklet';
       const startX = event.absoluteX;
-      const startY = event.absoluteY;
+      const startY = event.absoluteY + DRAG_OFFSET_Y;
       fingerX.value = startX;
       fingerY.value = startY;
       ghostScale.value = withTiming(SIZES.dragScale, { duration: 90 });
       ghostOpacity.value = withTiming(SIZES.opacityDragGhost, { duration: 90 });
-      runOnJS(handlePanBeginJS)(startX, startY);
+      runOnJS(handlePanBeginJS)(startX, event.absoluteY);
     })
     .onUpdate((event) => {
       'worklet';
